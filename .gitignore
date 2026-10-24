@@ -1,0 +1,14 @@
+# Vidéo animée, voix off et deck : gardés hors du dépôt
+presentation/
+
+# APK compilés (trop lourds, se régénèrent)
+livrables/
+
+# Secrets : ne jamais publier
+**/env.json
+**/key.properties
+**/*.jks
+**/*.keystore
+
+# Réglages locaux de Claude Code
+.claude/

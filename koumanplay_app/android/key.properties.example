@@ -1,0 +1,4 @@
+storePassword=MOT_DE_PASSE_DU_KEYSTORE
+keyPassword=MOT_DE_PASSE_DE_LA_CLE
+keyAlias=upload
+storeFile=C:/Users/VOUS/koumanplay-upload.jks

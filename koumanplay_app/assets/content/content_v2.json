@@ -1,0 +1,621 @@
+{
+  "version": 2,
+  "_note": "Contenu BROUILLON. Les mots et phrases (tableau 'words') sont à collecter avec les aînés : voir content/collecte_mots.csv et tool/import_words.dart. Aucun mot n'est inventé. Les proverbes sont en français, à valider ('validated'), et à compléter avec leur version en Baoulé.",
+  "languages": [
+    {
+      "id": "baoule",
+      "name": "Baoulé",
+      "group": "Akan",
+      "region": "Centre · Bouaké, Yamoussoukro",
+      "color": "#D4A017"
+    },
+    {
+      "id": "bete",
+      "name": "Bété",
+      "group": "Krou",
+      "region": "Centre-Ouest · Gagnoa, Daloa",
+      "color": "#16A34A"
+    },
+    {
+      "id": "dioula",
+      "name": "Dioula",
+      "group": "Mandé",
+      "region": "Nord et tout le pays · langue des marchés",
+      "color": "#EA580C"
+    },
+    {
+      "id": "senoufo",
+      "name": "Sénoufo",
+      "group": "Gour",
+      "region": "Nord · Korhogo, Ferkessédougou",
+      "color": "#2563EB"
+    }
+  ],
+  "levels": [
+    {
+      "id": "baoule-1",
+      "languageId": "baoule",
+      "order": 1,
+      "title": "Salutations",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "baoule-2",
+      "languageId": "baoule",
+      "order": 2,
+      "title": "La famille",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "baoule-3",
+      "languageId": "baoule",
+      "order": 3,
+      "title": "Les nombres",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "baoule-4",
+      "languageId": "baoule",
+      "order": 4,
+      "title": "Se présenter",
+      "kind": "phrases",
+      "passRatio": 0.6
+    },
+    {
+      "id": "baoule-5",
+      "languageId": "baoule",
+      "order": 5,
+      "title": "Au quotidien",
+      "kind": "phrases",
+      "passRatio": 0.6
+    },
+    {
+      "id": "baoule-6",
+      "languageId": "baoule",
+      "order": 6,
+      "title": "La force du groupe",
+      "kind": "proverbes",
+      "passRatio": 0.6
+    },
+    {
+      "id": "baoule-7",
+      "languageId": "baoule",
+      "order": 7,
+      "title": "La sagesse des anciens",
+      "kind": "proverbes",
+      "passRatio": 0.6
+    },
+    {
+      "id": "baoule-8",
+      "languageId": "baoule",
+      "order": 8,
+      "title": "Patience et parole",
+      "kind": "proverbes",
+      "passRatio": 0.6
+    },
+    {
+      "id": "bete-1",
+      "languageId": "bete",
+      "order": 1,
+      "title": "Salutations",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "bete-2",
+      "languageId": "bete",
+      "order": 2,
+      "title": "La famille",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "bete-3",
+      "languageId": "bete",
+      "order": 3,
+      "title": "Les nombres",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "bete-4",
+      "languageId": "bete",
+      "order": 4,
+      "title": "Se présenter",
+      "kind": "phrases",
+      "passRatio": 0.6
+    },
+    {
+      "id": "bete-5",
+      "languageId": "bete",
+      "order": 5,
+      "title": "Au quotidien",
+      "kind": "phrases",
+      "passRatio": 0.6
+    },
+    {
+      "id": "bete-6",
+      "languageId": "bete",
+      "order": 6,
+      "title": "Proverbes",
+      "kind": "proverbes",
+      "passRatio": 0.6
+    },
+    {
+      "id": "dioula-1",
+      "languageId": "dioula",
+      "order": 1,
+      "title": "Salutations",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "dioula-2",
+      "languageId": "dioula",
+      "order": 2,
+      "title": "La famille",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "dioula-3",
+      "languageId": "dioula",
+      "order": 3,
+      "title": "Les nombres",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "dioula-4",
+      "languageId": "dioula",
+      "order": 4,
+      "title": "Se présenter",
+      "kind": "phrases",
+      "passRatio": 0.6
+    },
+    {
+      "id": "dioula-5",
+      "languageId": "dioula",
+      "order": 5,
+      "title": "Au quotidien",
+      "kind": "phrases",
+      "passRatio": 0.6
+    },
+    {
+      "id": "dioula-6",
+      "languageId": "dioula",
+      "order": 6,
+      "title": "Proverbes",
+      "kind": "proverbes",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-1",
+      "languageId": "senoufo",
+      "order": 1,
+      "title": "Salutations",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-2",
+      "languageId": "senoufo",
+      "order": 2,
+      "title": "La famille",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-3",
+      "languageId": "senoufo",
+      "order": 3,
+      "title": "Les nombres",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-4",
+      "languageId": "senoufo",
+      "order": 4,
+      "title": "Se présenter",
+      "kind": "phrases",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-5",
+      "languageId": "senoufo",
+      "order": 5,
+      "title": "Au quotidien",
+      "kind": "phrases",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-6",
+      "languageId": "senoufo",
+      "order": 6,
+      "title": "Proverbes",
+      "kind": "proverbes",
+      "passRatio": 0.6
+    }
+  ],
+  "words": [],
+  "activities": [
+    {
+      "id": "prov-1-01",
+      "levelId": "baoule-6",
+      "proverb": "On ne balaie pas la cour avec une seule main.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "On a besoin des autres pour réussir.",
+        "Il faut travailler très tôt le matin.",
+        "La cour doit toujours rester propre.",
+        "Il ne faut jamais se reposer."
+      ],
+      "correct": 0,
+      "explanation": "La coopération rend les tâches plus faciles et plus solides.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-1-02",
+      "levelId": "baoule-6",
+      "proverb": "Une seule tête ne tient pas conseil.",
+      "original": null,
+      "language": null,
+      "question": "Quelle idée se cache derrière ce proverbe ?",
+      "answers": [
+        "Le chef doit décider seul.",
+        "Les décisions importantes se prennent à plusieurs.",
+        "Il faut parler le moins possible.",
+        "Les réunions sont une perte de temps."
+      ],
+      "correct": 1,
+      "explanation": "Chez les Akan, le conseil réunit plusieurs voix : une décision partagée est plus sage.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-1-03",
+      "levelId": "baoule-6",
+      "proverb": "L'arbre seul face au vent se brise.",
+      "original": null,
+      "language": null,
+      "question": "Que nous apprend ce proverbe ?",
+      "answers": [
+        "Il faut couper les arbres isolés.",
+        "Le vent est plus fort que tout.",
+        "Isolé, on est plus fragile face aux difficultés.",
+        "Il faut planter des arbres partout."
+      ],
+      "correct": 2,
+      "explanation": "Une forêt résiste au vent, un arbre seul casse : la communauté protège.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-1-04",
+      "levelId": "baoule-6",
+      "proverb": "Si tu veux aller vite, marche seul ; si tu veux aller loin, marchons ensemble.",
+      "original": null,
+      "language": null,
+      "question": "Quel conseil donne ce proverbe ?",
+      "answers": [
+        "Il faut toujours marcher vite.",
+        "Les longs voyages sont dangereux.",
+        "Seul on va vite, mais ensemble on va plus loin.",
+        "Il vaut mieux voyager seul."
+      ],
+      "correct": 2,
+      "explanation": "Les grands projets demandent du temps et des partenaires.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-1-05",
+      "levelId": "baoule-6",
+      "proverb": "Celui qui demande son chemin ne se perd pas.",
+      "original": null,
+      "language": null,
+      "question": "Quelle idée se rapproche de ce proverbe ?",
+      "answers": [
+        "Demander de l'aide est une force.",
+        "Il ne faut jamais voyager.",
+        "Les chemins sont toujours courts.",
+        "On doit tout savoir seul."
+      ],
+      "correct": 0,
+      "explanation": "Poser une question permet d'avancer avec plus de confiance.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-2-01",
+      "levelId": "baoule-7",
+      "proverb": "Ce qu'un vieillard voit assis, un jeune ne le voit pas debout.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Les jeunes ont une meilleure vue.",
+        "L'expérience des aînés permet de voir plus loin.",
+        "Il faut rester assis pour réfléchir.",
+        "Les vieillards ne se lèvent plus."
+      ],
+      "correct": 1,
+      "explanation": "Les années d'expérience donnent un regard que la jeunesse n'a pas encore.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-2-02",
+      "levelId": "baoule-7",
+      "proverb": "Personne ne montre Dieu à un enfant.",
+      "original": null,
+      "language": null,
+      "question": "Quel est le sens de ce proverbe ?",
+      "answers": [
+        "Les enfants ne doivent pas poser de questions.",
+        "Certaines vérités sont évidentes, même pour les plus jeunes.",
+        "Il faut tout apprendre aux enfants.",
+        "Les enfants ne comprennent rien."
+      ],
+      "correct": 1,
+      "explanation": "Certaines choses n'ont pas besoin d'être enseignées : chacun les perçoit naturellement.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-2-03",
+      "levelId": "baoule-7",
+      "proverb": "Il n'est pas interdit de revenir chercher ce que l'on a oublié.",
+      "original": null,
+      "language": null,
+      "question": "Ce proverbe est à l'origine du symbole Sankofa. Que signifie-t-il ?",
+      "answers": [
+        "Il ne faut jamais regarder en arrière.",
+        "On peut retourner à ses racines pour mieux avancer.",
+        "Oublier est une faute grave.",
+        "Il faut tout noter pour ne rien oublier."
+      ],
+      "correct": 1,
+      "explanation": "Sankofa, l'oiseau qui regarde en arrière : connaître son passé aide à construire l'avenir.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-2-04",
+      "levelId": "baoule-7",
+      "proverb": "C'est dans les vieilles marmites qu'on fait les bonnes sauces.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire cette expression ?",
+      "answers": [
+        "Il faut garder ses vieux ustensiles.",
+        "L'expérience et l'ancienneté donnent les meilleurs résultats.",
+        "Les nouvelles marmites sont dangereuses.",
+        "Il faut cuisiner longtemps."
+      ],
+      "correct": 1,
+      "explanation": "On reconnaît la valeur de ce qui a fait ses preuves avec le temps.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-2-05",
+      "levelId": "baoule-7",
+      "proverb": "Quand un vieillard meurt, c'est une bibliothèque qui brûle.",
+      "original": null,
+      "language": null,
+      "question": "Que veut transmettre cette phrase ?",
+      "answers": [
+        "Les bibliothèques sont fragiles.",
+        "Les savoirs des aînés disparaissent s'ils ne sont pas transmis.",
+        "Les vieillards lisent beaucoup.",
+        "Il faut construire plus de bibliothèques."
+      ],
+      "correct": 1,
+      "explanation": "Cette phrase, popularisée par Amadou Hampâté Bâ, rappelle l'urgence de transmettre les savoirs oraux.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-3-01",
+      "levelId": "baoule-8",
+      "proverb": "La parole est comme l'eau versée : on ne peut plus la ramasser.",
+      "original": null,
+      "language": null,
+      "question": "Quel conseil donne ce proverbe ?",
+      "answers": [
+        "Il faut boire beaucoup d'eau.",
+        "Il faut réfléchir avant de parler.",
+        "Il ne faut jamais parler.",
+        "L'eau est précieuse."
+      ],
+      "correct": 1,
+      "explanation": "Une parole dite ne se reprend pas : on mesure ses mots.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-3-02",
+      "levelId": "baoule-8",
+      "proverb": "Un tronc d'arbre a beau séjourner dans l'eau, il ne deviendra jamais crocodile.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "On ne change pas sa nature profonde.",
+        "Les crocodiles vivent dans les arbres.",
+        "Il ne faut pas jeter de bois dans l'eau.",
+        "Avec le temps, tout se transforme."
+      ],
+      "correct": 0,
+      "explanation": "On peut imiter les autres, mais on reste qui on est.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-3-03",
+      "levelId": "baoule-8",
+      "proverb": "Quand tu ne sais pas où tu vas, regarde d'où tu viens.",
+      "original": null,
+      "language": null,
+      "question": "Quelle idée exprime ce proverbe ?",
+      "answers": [
+        "Il faut toujours rentrer chez soi.",
+        "Connaître ses origines aide à trouver sa voie.",
+        "Les voyages sont inutiles.",
+        "Il faut avoir une carte."
+      ],
+      "correct": 1,
+      "explanation": "Nos racines sont une boussole quand l'avenir est flou.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-3-04",
+      "levelId": "baoule-8",
+      "proverb": "La patience est un arbre aux racines amères, mais aux fruits très doux.",
+      "original": null,
+      "language": null,
+      "question": "Que nous apprend ce proverbe ?",
+      "answers": [
+        "Les fruits sont meilleurs que les racines.",
+        "Attendre est difficile, mais la récompense en vaut la peine.",
+        "Il ne faut pas manger de racines.",
+        "Il faut planter des arbres fruitiers."
+      ],
+      "correct": 1,
+      "explanation": "La patience coûte sur le moment, mais elle porte ses fruits.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "prov-3-05",
+      "levelId": "baoule-8",
+      "proverb": "Le mensonge donne des fleurs, mais pas de fruits.",
+      "original": null,
+      "language": null,
+      "question": "Quel est le sens de ce proverbe ?",
+      "answers": [
+        "Les fleurs sont plus belles que les fruits.",
+        "Le mensonge peut sembler réussir, mais il ne mène à rien de durable.",
+        "Il faut planter des fleurs.",
+        "Mentir est parfois utile."
+      ],
+      "correct": 1,
+      "explanation": "Un mensonge peut briller un moment, il ne construit rien de solide.",
+      "xp": 20,
+      "validated": false
+    }
+  ],
+  "challenges": [
+    {
+      "id": "jeune-proverbe-famille",
+      "role": "jeune",
+      "unlockAfterLevel": "baoule-6",
+      "title": "Le proverbe de ma famille",
+      "description": "Demande à un aîné de ton entourage un proverbe qu'on disait dans sa famille.",
+      "rewardXp": 100,
+      "durationMin": 15,
+      "difficulty": "Facile",
+      "steps": [
+        "Choisis un aîné de ton entourage : grand-parent, oncle, tante, voisin…",
+        "Demande-lui un proverbe qu'on disait dans sa famille.",
+        "Demande-lui ce qu'il veut dire et quand on l'utilise.",
+        "Note le proverbe et son sens ci-dessous."
+      ],
+      "notePrompt": "Le proverbe et son sens"
+    },
+    {
+      "id": "jeune-jeux-autrefois",
+      "role": "jeune",
+      "unlockAfterLevel": "baoule-7",
+      "title": "Les jeux d'autrefois",
+      "description": "Découvre à quoi jouait un aîné quand il avait ton âge.",
+      "rewardXp": 100,
+      "durationMin": 20,
+      "difficulty": "Facile",
+      "steps": [
+        "Demande à un aîné à quoi il jouait quand il était enfant.",
+        "Fais-toi expliquer les règles du jeu.",
+        "Essayez d'y jouer ensemble, même quelques minutes.",
+        "Note le nom du jeu et ce que tu as appris."
+      ],
+      "notePrompt": "Le nom du jeu et ses règles"
+    },
+    {
+      "id": "jeune-geste-numerique",
+      "role": "jeune",
+      "unlockAfterLevel": "baoule-8",
+      "title": "Un geste numérique",
+      "description": "Apprends à un aîné à envoyer un message vocal sur son téléphone.",
+      "rewardXp": 120,
+      "durationMin": 15,
+      "difficulty": "Moyen",
+      "steps": [
+        "Assieds-toi avec un aîné et son téléphone.",
+        "Montre-lui comment enregistrer et envoyer un message vocal.",
+        "Laisse-le essayer seul pendant que tu l'encourages.",
+        "Demande-lui de t'envoyer un proverbe en vocal."
+      ],
+      "notePrompt": "Comment ça s'est passé ?"
+    },
+    {
+      "id": "senior-transmets-proverbe",
+      "role": "senior",
+      "unlockAfterLevel": "baoule-6",
+      "title": "Transmets un proverbe",
+      "description": "Partage avec un jeune un proverbe qu'on disait dans votre famille.",
+      "rewardXp": 100,
+      "durationMin": 15,
+      "difficulty": "Facile",
+      "steps": [
+        "Choisis un jeune de ton entourage : petit-enfant, neveu, voisin…",
+        "Partage-lui un proverbe de ta famille.",
+        "Explique-lui ce qu'il veut dire et quand on l'utilise.",
+        "Note le proverbe et son sens ci-dessous."
+      ],
+      "notePrompt": "Le proverbe et son sens"
+    },
+    {
+      "id": "senior-raconte-jeu",
+      "role": "senior",
+      "unlockAfterLevel": "baoule-7",
+      "title": "Raconte un jeu d'autrefois",
+      "description": "Apprends à un jeune un jeu de ton enfance.",
+      "rewardXp": 100,
+      "durationMin": 20,
+      "difficulty": "Facile",
+      "steps": [
+        "Pense à un jeu de ton enfance.",
+        "Explique ses règles à un jeune.",
+        "Jouez-y ensemble quelques minutes.",
+        "Note le nom du jeu et ses règles."
+      ],
+      "notePrompt": "Le nom du jeu et ses règles"
+    },
+    {
+      "id": "senior-geste-numerique",
+      "role": "senior",
+      "unlockAfterLevel": "baoule-8",
+      "title": "Apprends un geste numérique",
+      "description": "Demande à un jeune de t'apprendre à envoyer un message vocal.",
+      "rewardXp": 120,
+      "durationMin": 15,
+      "difficulty": "Moyen",
+      "steps": [
+        "Demande à un jeune de t'aider avec ton téléphone.",
+        "Fais-toi montrer comment enregistrer un message vocal.",
+        "Essaie seul, il est là pour t'aider.",
+        "Envoie-lui un proverbe en vocal."
+      ],
+      "notePrompt": "Comment ça s'est passé ?"
+    }
+  ]
+}
