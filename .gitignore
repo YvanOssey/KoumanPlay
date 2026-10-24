@@ -12,3 +12,6 @@ livrables/
 
 # Réglages locaux de Claude Code
 .claude/
+
+# Documents du projet : confidentiels, jamais sur GitHub
+UTILES/
