@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/game_rules.dart';
 import '../../core/lesson.dart';
 import '../../core/theme.dart';
 import '../../models/content.dart';
 import '../../services/providers.dart';
 import '../../widgets/audio_button.dart';
 import '../../widgets/common.dart';
+import '../../widgets/energy.dart';
 
 class QuizScreen extends ConsumerStatefulWidget {
   const QuizScreen({super.key, required this.levelId});
@@ -26,6 +28,12 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   int? _selected;
   bool _submitted = false;
   bool _finishing = false;
+
+  /// Plus d'énergie au lancement : on ne joue pas.
+  late final bool _blocked;
+
+  /// L'énergie est tombée à 0 pendant la partie : elle s'arrête.
+  bool _outOfEnergy = false;
   final _correctIds = <String>{};
   final _scroll = ScrollController();
 
@@ -42,6 +50,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     _level = content.level(widget.levelId);
     _language = _level == null ? null : content.language(_level.languageId);
     _questions = LessonBuilder.build(content, widget.levelId);
+    _blocked = GameRules.energyAt(ref.read(playerProvider), DateTime.now()) == 0;
     ref.read(analyticsProvider).track('level_started', {'level': widget.levelId});
   }
 
@@ -49,11 +58,16 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
   void _submit() {
     final correct = _selected == _current.correct;
+    // Décidé tout de suite, pour que « Question suivante » ne s'affiche pas
+    // sur la dernière énergie.
+    final lastEnergy = !correct && GameRules.energyAt(ref.read(playerProvider), DateTime.now()) <= 1;
     setState(() {
       _submitted = true;
       if (correct) _correctIds.add(_current.itemId);
+      if (lastEnergy) _outOfEnergy = true;
     });
     ref.read(analyticsProvider).track('answer', {'activity': _current.itemId, 'correct': correct, 'choice': _selected});
+    if (!correct) ref.read(playerProvider.notifier).loseEnergy();
     // Fait apparaître l'explication si elle est sous le bas de l'écran.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
@@ -63,7 +77,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   }
 
   Future<void> _next() async {
-    if (_index < _questions.length - 1) {
+    if (!_outOfEnergy && _index < _questions.length - 1) {
       setState(() {
         _index++;
         _selected = null;
@@ -77,6 +91,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
           widget.levelId,
           askedIds: {for (final q in _questions) q.itemId},
           correctIds: _correctIds,
+          outOfEnergy: _outOfEnergy,
         );
     if (mounted) context.pushReplacement('/result', extra: outcome);
   }
@@ -104,6 +119,12 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         body: const Center(child: Text('Ce niveau n\'est pas encore disponible.')),
       );
     }
+    if (_blocked) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Padding(padding: EdgeInsets.all(AppSpacing.screen), child: Center(child: OutOfEnergyDialog())),
+      );
+    }
     final theme = Theme.of(context);
     final question = _current;
     final isCorrect = _selected == question.correct;
@@ -128,6 +149,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                     ),
                     const SizedBox(width: 12),
                     Text('${_index + 1}/${_questions.length}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 10),
+                    const EnergyPill(),
                   ],
                 ),
               ),
@@ -167,7 +190,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                       ),
                       const SizedBox(height: 10),
                     ],
-                    if (_submitted) _Feedback(correct: isCorrect, question: question),
+                    if (_submitted) _Feedback(correct: isCorrect, question: question, outOfEnergy: _outOfEnergy),
                   ],
                 ),
               ),
@@ -181,7 +204,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                           : _next,
                   child: Text(!_submitted
                       ? 'Valider ma réponse'
-                      : _index < _questions.length - 1
+                      : !_outOfEnergy && _index < _questions.length - 1
                           ? 'Question suivante'
                           : 'Voir mon résultat'),
                 ),
@@ -294,10 +317,11 @@ class _AnswerTile extends StatelessWidget {
 }
 
 class _Feedback extends StatelessWidget {
-  const _Feedback({required this.correct, required this.question});
+  const _Feedback({required this.correct, required this.question, required this.outOfEnergy});
 
   final bool correct;
   final LessonQuestion question;
+  final bool outOfEnergy;
 
   @override
   Widget build(BuildContext context) {
@@ -335,6 +359,13 @@ class _Feedback extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 4),
                   Text(question.explanation, style: const TextStyle(color: AppColors.gray700)),
+                  if (!correct) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      outOfEnergy ? '−1 énergie : tu n\'en as plus, la partie s\'arrête ici.' : '−1 énergie',
+                      style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
+                    ),
+                  ],
                 ],
               ),
             ),

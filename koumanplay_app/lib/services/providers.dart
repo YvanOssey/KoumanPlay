@@ -184,7 +184,21 @@ class PlayerController extends Notifier<PlayerState> {
     return outcome;
   }
 
-  Future<LevelOutcome> completeLevel(String levelId, {required Set<String> askedIds, required Set<String> correctIds}) async {
+  /// Mauvaise réponse : retire une énergie et renvoie celle qui reste.
+  Future<int> loseEnergy() async {
+    final now = DateTime.now();
+    await _save(GameRules.loseEnergy(state, now));
+    final left = GameRules.energyAt(state, now);
+    if (left == 0) _analytics.track('energy_empty');
+    return left;
+  }
+
+  Future<LevelOutcome> completeLevel(
+    String levelId, {
+    required Set<String> askedIds,
+    required Set<String> correctIds,
+    bool outOfEnergy = false,
+  }) async {
     final outcome = GameRules.completeLevel(
       content: _content,
       player: state,
@@ -192,6 +206,7 @@ class PlayerController extends Notifier<PlayerState> {
       askedIds: askedIds,
       correctIds: correctIds,
       now: DateTime.now(),
+      outOfEnergy: outOfEnergy,
     );
     await _save(outcome.player);
     _analytics.track('level_completed', {
@@ -200,6 +215,7 @@ class PlayerController extends Notifier<PlayerState> {
       'total': outcome.total,
       'passed': outcome.passed,
       'xp_gained': outcome.xpGained,
+      'out_of_energy': outOfEnergy,
     });
     for (final badge in outcome.newBadges) {
       _analytics.track('badge_earned', {'badge': badge.id});

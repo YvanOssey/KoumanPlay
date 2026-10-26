@@ -10,6 +10,7 @@ import '../../models/content.dart';
 import '../../models/player.dart';
 import '../../services/providers.dart';
 import '../../widgets/common.dart';
+import '../../widgets/energy.dart';
 
 // Géométrie de la carte : chaque langue est une « zone » ; ses niveaux
 // montent en zigzag du bas (niveau 1) vers le haut, au-dessus de son bandeau.
@@ -109,7 +110,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           top: 0,
           left: 0,
           right: 0,
-          child: _MapHeader(xp: player.xp, streak: player.streak),
+          child: _MapHeader(xp: player.xp),
         ),
       ],
     );
@@ -117,10 +118,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 }
 
 class _MapHeader extends StatelessWidget {
-  const _MapHeader({required this.xp, required this.streak});
+  const _MapHeader({required this.xp});
 
   final int xp;
-  final int streak;
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +139,7 @@ class _MapHeader extends StatelessWidget {
           child: Row(
             children: [
               Expanded(child: Text('Carte des langues', style: Theme.of(context).textTheme.titleLarge)),
-              StatPill(icon: Icons.local_fire_department_rounded, label: '$streak', color: AppColors.warning),
+              const EnergyPill(),
               const SizedBox(width: 8),
               StatPill(icon: Icons.star_rounded, label: '$xp XP', color: AppColors.green500),
             ],
@@ -650,13 +650,21 @@ class _LevelSheet extends StatelessWidget {
               Text('Meilleur score : ${result!.bestCorrect}/${result!.total}', style: const TextStyle(color: AppColors.gray500)),
             ],
             const SizedBox(height: AppSpacing.section),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: color),
-              onPressed: () {
-                Navigator.pop(context);
-                context.push('/quiz/${level.id}');
-              },
-              child: Text(result?.passed ?? false ? 'Rejouer' : 'Jouer'),
+            EnergyBuilder(
+              builder: (context, energy, nextIn) => FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: color),
+                onPressed: energy == 0
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        context.push('/quiz/${level.id}');
+                      },
+                child: Text(energy == 0
+                    ? 'Plus d\'énergie · ${formatWait(nextIn ?? GameRules.energyRefill)}'
+                    : result?.passed ?? false
+                        ? 'Rejouer'
+                        : 'Jouer'),
+              ),
             ),
           ],
         ),

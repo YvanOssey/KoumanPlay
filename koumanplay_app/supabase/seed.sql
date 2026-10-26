@@ -8,32 +8,32 @@ insert into public.languages (id, name, "group", region, color, sort) values
 on conflict (id) do update set name = excluded.name, "group" = excluded."group", region = excluded.region, color = excluded.color, sort = excluded.sort;
 
 insert into public.levels (id, language_id, category_id, sort, title, kind, pass_ratio) values
-  ('baoule-1', 'baoule', null, 1, 'Salutations', 'mots', 0.6),
-  ('baoule-2', 'baoule', null, 2, 'La famille', 'mots', 0.6),
-  ('baoule-3', 'baoule', null, 3, 'Les nombres', 'mots', 0.6),
-  ('baoule-4', 'baoule', null, 4, 'Se présenter', 'phrases', 0.6),
-  ('baoule-5', 'baoule', null, 5, 'Au quotidien', 'phrases', 0.6),
-  ('baoule-6', 'baoule', null, 6, 'La force du groupe', 'proverbes', 0.6),
-  ('baoule-7', 'baoule', null, 7, 'La sagesse des anciens', 'proverbes', 0.6),
-  ('baoule-8', 'baoule', null, 8, 'Patience et parole', 'proverbes', 0.6),
-  ('bete-1', 'bete', null, 1, 'Salutations', 'mots', 0.6),
-  ('bete-2', 'bete', null, 2, 'La famille', 'mots', 0.6),
-  ('bete-3', 'bete', null, 3, 'Les nombres', 'mots', 0.6),
-  ('bete-4', 'bete', null, 4, 'Se présenter', 'phrases', 0.6),
-  ('bete-5', 'bete', null, 5, 'Au quotidien', 'phrases', 0.6),
-  ('bete-6', 'bete', null, 6, 'Proverbes', 'proverbes', 0.6),
-  ('dioula-1', 'dioula', null, 1, 'Salutations', 'mots', 0.6),
-  ('dioula-2', 'dioula', null, 2, 'La famille', 'mots', 0.6),
-  ('dioula-3', 'dioula', null, 3, 'Les nombres', 'mots', 0.6),
-  ('dioula-4', 'dioula', null, 4, 'Se présenter', 'phrases', 0.6),
-  ('dioula-5', 'dioula', null, 5, 'Au quotidien', 'phrases', 0.6),
-  ('dioula-6', 'dioula', null, 6, 'Proverbes', 'proverbes', 0.6),
-  ('senoufo-1', 'senoufo', null, 1, 'Salutations', 'mots', 0.6),
-  ('senoufo-2', 'senoufo', null, 2, 'La famille', 'mots', 0.6),
-  ('senoufo-3', 'senoufo', null, 3, 'Les nombres', 'mots', 0.6),
-  ('senoufo-4', 'senoufo', null, 4, 'Se présenter', 'phrases', 0.6),
-  ('senoufo-5', 'senoufo', null, 5, 'Au quotidien', 'phrases', 0.6),
-  ('senoufo-6', 'senoufo', null, 6, 'Proverbes', 'proverbes', 0.6)
+  ('baoule-6', 'baoule', null, 1, 'La force du groupe', 'proverbes', 0.6),
+  ('baoule-7', 'baoule', null, 2, 'La sagesse des anciens', 'proverbes', 0.6),
+  ('baoule-8', 'baoule', null, 3, 'Patience et parole', 'proverbes', 0.6),
+  ('baoule-1', 'baoule', null, 4, 'Salutations', 'mots', 0.6),
+  ('baoule-2', 'baoule', null, 5, 'La famille', 'mots', 0.6),
+  ('baoule-3', 'baoule', null, 6, 'Les nombres', 'mots', 0.6),
+  ('baoule-4', 'baoule', null, 7, 'Se présenter', 'phrases', 0.6),
+  ('baoule-5', 'baoule', null, 8, 'Au quotidien', 'phrases', 0.6),
+  ('bete-6', 'bete', null, 1, 'Proverbes', 'proverbes', 0.6),
+  ('bete-1', 'bete', null, 2, 'Salutations', 'mots', 0.6),
+  ('bete-2', 'bete', null, 3, 'La famille', 'mots', 0.6),
+  ('bete-3', 'bete', null, 4, 'Les nombres', 'mots', 0.6),
+  ('bete-4', 'bete', null, 5, 'Se présenter', 'phrases', 0.6),
+  ('bete-5', 'bete', null, 6, 'Au quotidien', 'phrases', 0.6),
+  ('dioula-6', 'dioula', null, 1, 'Proverbes', 'proverbes', 0.6),
+  ('dioula-1', 'dioula', null, 2, 'Salutations', 'mots', 0.6),
+  ('dioula-2', 'dioula', null, 3, 'La famille', 'mots', 0.6),
+  ('dioula-3', 'dioula', null, 4, 'Les nombres', 'mots', 0.6),
+  ('dioula-4', 'dioula', null, 5, 'Se présenter', 'phrases', 0.6),
+  ('dioula-5', 'dioula', null, 6, 'Au quotidien', 'phrases', 0.6),
+  ('senoufo-6', 'senoufo', null, 1, 'Proverbes', 'proverbes', 0.6),
+  ('senoufo-1', 'senoufo', null, 2, 'Salutations', 'mots', 0.6),
+  ('senoufo-2', 'senoufo', null, 3, 'La famille', 'mots', 0.6),
+  ('senoufo-3', 'senoufo', null, 4, 'Les nombres', 'mots', 0.6),
+  ('senoufo-4', 'senoufo', null, 5, 'Se présenter', 'phrases', 0.6),
+  ('senoufo-5', 'senoufo', null, 6, 'Au quotidien', 'phrases', 0.6)
 on conflict (id) do update set language_id = excluded.language_id, category_id = excluded.category_id, sort = excluded.sort, title = excluded.title, kind = excluded.kind, pass_ratio = excluded.pass_ratio;
 
 insert into public.activities (id, level_id, proverb, original, language, question, answers, correct, explanation, audio, xp, validated, sort) values
@@ -63,4 +63,4 @@ insert into public.challenges (id, role, unlock_after_level, title, description,
   ('senior-geste-numerique', 'senior', 'baoule-8', 'Apprends un geste numérique', 'Demande à un jeune de t''apprendre à envoyer un message vocal.', 120, 15, 'Moyen', '["Demande à un jeune de t''aider avec ton téléphone.","Fais-toi montrer comment enregistrer un message vocal.","Essaie seul, il est là pour t''aider.","Envoie-lui un proverbe en vocal."]'::jsonb, 'Comment ça s''est passé ?', 5)
 on conflict (id) do update set role = excluded.role, unlock_after_level = excluded.unlock_after_level, title = excluded.title, description = excluded.description, reward_xp = excluded.reward_xp, duration_min = excluded.duration_min, difficulty = excluded.difficulty, steps = excluded.steps, note_prompt = excluded.note_prompt, sort = excluded.sort;
 
-delete from public.levels where id not in ('baoule-1', 'baoule-2', 'baoule-3', 'baoule-4', 'baoule-5', 'baoule-6', 'baoule-7', 'baoule-8', 'bete-1', 'bete-2', 'bete-3', 'bete-4', 'bete-5', 'bete-6', 'dioula-1', 'dioula-2', 'dioula-3', 'dioula-4', 'dioula-5', 'dioula-6', 'senoufo-1', 'senoufo-2', 'senoufo-3', 'senoufo-4', 'senoufo-5', 'senoufo-6');
+delete from public.levels where id not in ('baoule-6', 'baoule-7', 'baoule-8', 'baoule-1', 'baoule-2', 'baoule-3', 'baoule-4', 'baoule-5', 'bete-6', 'bete-1', 'bete-2', 'bete-3', 'bete-4', 'bete-5', 'dioula-6', 'dioula-1', 'dioula-2', 'dioula-3', 'dioula-4', 'dioula-5', 'senoufo-6', 'senoufo-1', 'senoufo-2', 'senoufo-3', 'senoufo-4', 'senoufo-5');

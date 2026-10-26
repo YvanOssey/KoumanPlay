@@ -25,6 +25,41 @@ class GameRules {
     return ChallengeOutcome(player: next, xpGained: xpGained, newBadges: newBadges);
   }
 
+  /// Une énergie revient toutes les 15 minutes : 75 minutes de 0 à 5.
+  static const energyRefill = Duration(minutes: 15);
+
+  static int _refills(PlayerState player, DateTime now) {
+    final elapsed = now.difference(player.energySince!);
+    return elapsed.isNegative ? 0 : elapsed.inSeconds ~/ energyRefill.inSeconds;
+  }
+
+  /// Énergie disponible à [now].
+  static int energyAt(PlayerState player, DateTime now) {
+    if (player.energySince == null) return PlayerState.maxEnergy;
+    return (player.energy + _refills(player, now)).clamp(0, PlayerState.maxEnergy);
+  }
+
+  /// Temps avant la prochaine énergie, ou null si elle est pleine.
+  static Duration? nextEnergyIn(PlayerState player, DateTime now) {
+    final since = player.energySince;
+    if (since == null || energyAt(player, now) >= PlayerState.maxEnergy) return null;
+    final elapsed = now.difference(since);
+    if (elapsed.isNegative) return energyRefill;
+    return Duration(seconds: energyRefill.inSeconds - elapsed.inSeconds % energyRefill.inSeconds);
+  }
+
+  /// Retire une énergie (mauvaise réponse). Le temps déjà écoulé vers la
+  /// prochaine énergie est conservé.
+  static PlayerState loseEnergy(PlayerState player, DateTime now) {
+    final current = energyAt(player, now);
+    if (current <= 0) return player;
+    final since = player.energySince;
+    final anchor = since == null || current >= PlayerState.maxEnergy
+        ? now
+        : since.add(energyRefill * _refills(player, now));
+    return player.copyWith(energy: current - 1, energySince: anchor, updatedAt: now);
+  }
+
   static int xpIntoLevel(int xp) => xp % xpPerPlayerLevel;
 
   static double levelProgress(int xp) => xpIntoLevel(xp) / xpPerPlayerLevel;
@@ -113,8 +148,9 @@ class GameRules {
   }
 
   /// Applique la fin d'un niveau. [askedIds] = éléments posés pendant la
-  /// partie, [correctIds] = ceux réussis. Seuls les éléments jamais réussis
-  /// rapportent de l'XP, et l'XP est gardé même si le niveau n'est pas validé.
+  /// partie, [correctIds] = ceux réussis. Seules les bonnes réponses jamais
+  /// données rapportent de l'XP, gardé même si le niveau n'est pas validé.
+  /// [outOfEnergy] : la partie s'est arrêtée faute d'énergie.
   static LevelOutcome completeLevel({
     required ContentPack content,
     required PlayerState player,
@@ -122,6 +158,7 @@ class GameRules {
     required Set<String> askedIds,
     required Set<String> correctIds,
     required DateTime now,
+    bool outOfEnergy = false,
   }) {
     final level = content.level(levelId)!;
     final items = content.itemsOf(levelId).where((i) => askedIds.contains(i.id)).toList();
@@ -166,6 +203,7 @@ class GameRules {
       leveledUp: playerLevel(next.xp) > playerLevel(player.xp),
       newBadges: newBadges,
       unlockedChallenges: unlocked,
+      outOfEnergy: outOfEnergy,
     );
   }
 
@@ -256,6 +294,7 @@ class LevelOutcome {
     required this.leveledUp,
     required this.newBadges,
     required this.unlockedChallenges,
+    this.outOfEnergy = false,
   });
 
   final PlayerState player;
@@ -267,6 +306,7 @@ class LevelOutcome {
   final bool leveledUp;
   final List<BadgeDef> newBadges;
   final List<Challenge> unlockedChallenges;
+  final bool outOfEnergy;
 }
 
 class ChallengeOutcome {

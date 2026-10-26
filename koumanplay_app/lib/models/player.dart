@@ -90,7 +90,12 @@ class PlayerState {
     this.consentAt,
     this.creditName = true,
     this.transmitted = const {},
+    this.energy = maxEnergy,
+    this.energySince,
   });
+
+  /// Énergie maximale ; une mauvaise réponse en coûte une.
+  static const maxEnergy = 5;
 
   factory PlayerState.initial() => PlayerState(
         firstName: '',
@@ -138,6 +143,11 @@ class PlayerState {
   /// Nombre de transmissions par type ('mot', 'proverbe', 'conte').
   final Map<String, int> transmitted;
 
+  /// Énergie au moment [energySince] ; elle remonte ensuite avec le temps
+  /// (voir GameRules.energyAt). [energySince] null = énergie pleine.
+  final int energy;
+  final DateTime? energySince;
+
   int get transmittedTotal => transmitted.values.fold(0, (a, b) => a + b);
 
   bool get isSenior => role == 'senior';
@@ -162,6 +172,8 @@ class PlayerState {
     DateTime? consentAt,
     bool? creditName,
     Map<String, int>? transmitted,
+    int? energy,
+    DateTime? energySince,
   }) =>
       PlayerState(
         firstName: firstName ?? this.firstName,
@@ -181,6 +193,8 @@ class PlayerState {
         consentAt: consentAt ?? this.consentAt,
         creditName: creditName ?? this.creditName,
         transmitted: transmitted ?? this.transmitted,
+        energy: energy ?? this.energy,
+        energySince: energySince ?? this.energySince,
       );
 
   Map<String, dynamic> toJson() => {
@@ -201,6 +215,8 @@ class PlayerState {
         'consentAt': consentAt?.toUtc().toIso8601String(),
         'creditName': creditName,
         'transmitted': transmitted,
+        'energy': energy,
+        'energySince': energySince?.toUtc().toIso8601String(),
       };
 
   factory PlayerState.fromJson(Map<String, dynamic> json) => PlayerState(
@@ -225,5 +241,7 @@ class PlayerState {
         consentAt: DateTime.tryParse(json['consentAt'] as String? ?? ''),
         creditName: json['creditName'] as bool? ?? true,
         transmitted: ((json['transmitted'] as Map?) ?? const {}).cast<String, int>(),
+        energy: json['energy'] as int? ?? maxEnergy,
+        energySince: DateTime.tryParse(json['energySince'] as String? ?? ''),
       );
 }

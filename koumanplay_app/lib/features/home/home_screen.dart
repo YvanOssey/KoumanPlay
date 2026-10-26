@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../models/player.dart';
 import '../../services/providers.dart';
 import '../../widgets/common.dart';
+import '../../widgets/energy.dart';
 import '../challenges/challenge_card.dart';
 import '../elder/elder_home_screen.dart';
 
@@ -41,6 +42,8 @@ class HomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+              const EnergyPill(),
+              const SizedBox(width: 8),
               StatPill(icon: Icons.local_fire_department_rounded, label: '${player.streak}', color: AppColors.warning),
             ],
           ),

@@ -33,49 +33,9 @@
   ],
   "levels": [
     {
-      "id": "baoule-1",
-      "languageId": "baoule",
-      "order": 1,
-      "title": "Salutations",
-      "kind": "mots",
-      "passRatio": 0.6
-    },
-    {
-      "id": "baoule-2",
-      "languageId": "baoule",
-      "order": 2,
-      "title": "La famille",
-      "kind": "mots",
-      "passRatio": 0.6
-    },
-    {
-      "id": "baoule-3",
-      "languageId": "baoule",
-      "order": 3,
-      "title": "Les nombres",
-      "kind": "mots",
-      "passRatio": 0.6
-    },
-    {
-      "id": "baoule-4",
-      "languageId": "baoule",
-      "order": 4,
-      "title": "Se présenter",
-      "kind": "phrases",
-      "passRatio": 0.6
-    },
-    {
-      "id": "baoule-5",
-      "languageId": "baoule",
-      "order": 5,
-      "title": "Au quotidien",
-      "kind": "phrases",
-      "passRatio": 0.6
-    },
-    {
       "id": "baoule-6",
       "languageId": "baoule",
-      "order": 6,
+      "order": 1,
       "title": "La force du groupe",
       "kind": "proverbes",
       "passRatio": 0.6
@@ -83,7 +43,7 @@
     {
       "id": "baoule-7",
       "languageId": "baoule",
-      "order": 7,
+      "order": 2,
       "title": "La sagesse des anciens",
       "kind": "proverbes",
       "passRatio": 0.6
@@ -91,47 +51,47 @@
     {
       "id": "baoule-8",
       "languageId": "baoule",
-      "order": 8,
+      "order": 3,
       "title": "Patience et parole",
       "kind": "proverbes",
       "passRatio": 0.6
     },
     {
-      "id": "bete-1",
-      "languageId": "bete",
-      "order": 1,
+      "id": "baoule-1",
+      "languageId": "baoule",
+      "order": 4,
       "title": "Salutations",
       "kind": "mots",
       "passRatio": 0.6
     },
     {
-      "id": "bete-2",
-      "languageId": "bete",
-      "order": 2,
+      "id": "baoule-2",
+      "languageId": "baoule",
+      "order": 5,
       "title": "La famille",
       "kind": "mots",
       "passRatio": 0.6
     },
     {
-      "id": "bete-3",
-      "languageId": "bete",
-      "order": 3,
+      "id": "baoule-3",
+      "languageId": "baoule",
+      "order": 6,
       "title": "Les nombres",
       "kind": "mots",
       "passRatio": 0.6
     },
     {
-      "id": "bete-4",
-      "languageId": "bete",
-      "order": 4,
+      "id": "baoule-4",
+      "languageId": "baoule",
+      "order": 7,
       "title": "Se présenter",
       "kind": "phrases",
       "passRatio": 0.6
     },
     {
-      "id": "bete-5",
-      "languageId": "bete",
-      "order": 5,
+      "id": "baoule-5",
+      "languageId": "baoule",
+      "order": 8,
       "title": "Au quotidien",
       "kind": "phrases",
       "passRatio": 0.6
@@ -139,47 +99,47 @@
     {
       "id": "bete-6",
       "languageId": "bete",
-      "order": 6,
+      "order": 1,
       "title": "Proverbes",
       "kind": "proverbes",
       "passRatio": 0.6
     },
     {
-      "id": "dioula-1",
-      "languageId": "dioula",
-      "order": 1,
+      "id": "bete-1",
+      "languageId": "bete",
+      "order": 2,
       "title": "Salutations",
       "kind": "mots",
       "passRatio": 0.6
     },
     {
-      "id": "dioula-2",
-      "languageId": "dioula",
-      "order": 2,
+      "id": "bete-2",
+      "languageId": "bete",
+      "order": 3,
       "title": "La famille",
       "kind": "mots",
       "passRatio": 0.6
     },
     {
-      "id": "dioula-3",
-      "languageId": "dioula",
-      "order": 3,
+      "id": "bete-3",
+      "languageId": "bete",
+      "order": 4,
       "title": "Les nombres",
       "kind": "mots",
       "passRatio": 0.6
     },
     {
-      "id": "dioula-4",
-      "languageId": "dioula",
-      "order": 4,
+      "id": "bete-4",
+      "languageId": "bete",
+      "order": 5,
       "title": "Se présenter",
       "kind": "phrases",
       "passRatio": 0.6
     },
     {
-      "id": "dioula-5",
-      "languageId": "dioula",
-      "order": 5,
+      "id": "bete-5",
+      "languageId": "bete",
+      "order": 6,
       "title": "Au quotidien",
       "kind": "phrases",
       "passRatio": 0.6
@@ -187,47 +147,47 @@
     {
       "id": "dioula-6",
       "languageId": "dioula",
-      "order": 6,
+      "order": 1,
       "title": "Proverbes",
       "kind": "proverbes",
       "passRatio": 0.6
     },
     {
-      "id": "senoufo-1",
-      "languageId": "senoufo",
-      "order": 1,
+      "id": "dioula-1",
+      "languageId": "dioula",
+      "order": 2,
       "title": "Salutations",
       "kind": "mots",
       "passRatio": 0.6
     },
     {
-      "id": "senoufo-2",
-      "languageId": "senoufo",
-      "order": 2,
+      "id": "dioula-2",
+      "languageId": "dioula",
+      "order": 3,
       "title": "La famille",
       "kind": "mots",
       "passRatio": 0.6
     },
     {
-      "id": "senoufo-3",
-      "languageId": "senoufo",
-      "order": 3,
+      "id": "dioula-3",
+      "languageId": "dioula",
+      "order": 4,
       "title": "Les nombres",
       "kind": "mots",
       "passRatio": 0.6
     },
     {
-      "id": "senoufo-4",
-      "languageId": "senoufo",
-      "order": 4,
+      "id": "dioula-4",
+      "languageId": "dioula",
+      "order": 5,
       "title": "Se présenter",
       "kind": "phrases",
       "passRatio": 0.6
     },
     {
-      "id": "senoufo-5",
-      "languageId": "senoufo",
-      "order": 5,
+      "id": "dioula-5",
+      "languageId": "dioula",
+      "order": 6,
       "title": "Au quotidien",
       "kind": "phrases",
       "passRatio": 0.6
@@ -235,9 +195,49 @@
     {
       "id": "senoufo-6",
       "languageId": "senoufo",
-      "order": 6,
+      "order": 1,
       "title": "Proverbes",
       "kind": "proverbes",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-1",
+      "languageId": "senoufo",
+      "order": 2,
+      "title": "Salutations",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-2",
+      "languageId": "senoufo",
+      "order": 3,
+      "title": "La famille",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-3",
+      "languageId": "senoufo",
+      "order": 4,
+      "title": "Les nombres",
+      "kind": "mots",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-4",
+      "languageId": "senoufo",
+      "order": 5,
+      "title": "Se présenter",
+      "kind": "phrases",
+      "passRatio": 0.6
+    },
+    {
+      "id": "senoufo-5",
+      "languageId": "senoufo",
+      "order": 6,
+      "title": "Au quotidien",
+      "kind": "phrases",
       "passRatio": 0.6
     }
   ],

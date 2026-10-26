@@ -6,6 +6,7 @@ import '../../core/game_rules.dart';
 import '../../core/theme.dart';
 import '../../services/providers.dart';
 import '../../widgets/common.dart';
+import '../../widgets/energy.dart';
 
 class ResultScreen extends ConsumerWidget {
   const ResultScreen({super.key, required this.outcome});
@@ -69,6 +70,29 @@ class ResultScreen extends ConsumerWidget {
                       Expanded(child: _Stat(label: 'XP gagnés', value: '+${outcome.xpGained}', color: AppColors.green500)),
                     ],
                   ),
+                  if (outcome.outOfEnergy) ...[
+                    const SizedBox(height: 12),
+                    AppCard(
+                      color: AppColors.errorLight,
+                      border: false,
+                      child: EnergyBuilder(
+                        builder: (context, energy, nextIn) => Row(
+                          children: [
+                            const Icon(Icons.bolt_rounded, color: AppColors.error),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                energy > 0
+                                    ? 'Ton énergie remonte : tu peux rejouer.'
+                                    : 'Plus d\'énergie. La prochaine revient dans ${formatWait(nextIn ?? GameRules.energyRefill)}.',
+                                style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.error),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   if (outcome.xpGained == 0 && outcome.correct > 0) ...[
                     const SizedBox(height: 8),
                     const Text(
@@ -142,12 +166,12 @@ class ResultScreen extends ConsumerWidget {
                 children: [
                   if (!outcome.passed)
                     FilledButton(
-                      onPressed: () => context.pushReplacement('/quiz/${outcome.levelId}'),
+                      onPressed: () => startLevel(context, ref, outcome.levelId, replace: true),
                       child: const Text('Réessayer'),
                     )
                   else if (next != null)
                     FilledButton(
-                      onPressed: () => context.pushReplacement('/quiz/${next.id}'),
+                      onPressed: () => startLevel(context, ref, next.id, replace: true),
                       child: const Text('Niveau suivant'),
                     ),
                   const SizedBox(height: 10),

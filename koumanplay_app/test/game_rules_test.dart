@@ -209,4 +209,59 @@ void main() {
     expect(restored.consentAt, isNotNull);
     expect(restored.transmittedTotal, 3);
   });
+
+  test('le parcours commence au niveau 1, par les proverbes', () {
+    for (final language in content.languages) {
+      final levels = content.levelsOf(language.id);
+      expect(levels.map((l) => l.order), List.generate(levels.length, (i) => i + 1), reason: language.id);
+    }
+    final first = GameRules.nextLevel(content, fresh())!;
+    expect(first.order, 1);
+    expect(first.kind, LevelKind.proverbes);
+  });
+
+  test("une mauvaise réponse coûte une énergie, qui revient toutes les 15 minutes", () {
+    var p = fresh();
+    expect(GameRules.energyAt(p, now), 5);
+    expect(GameRules.nextEnergyIn(p, now), isNull);
+    p = GameRules.loseEnergy(p, now);
+    expect(GameRules.energyAt(p, now), 4);
+    expect(GameRules.nextEnergyIn(p, now), const Duration(minutes: 15));
+    // Deux erreurs 5 minutes plus tard : le compte à rebours continue.
+    final t5 = now.add(const Duration(minutes: 5));
+    p = GameRules.loseEnergy(GameRules.loseEnergy(p, t5), t5);
+    expect(GameRules.energyAt(p, t5), 2);
+    expect(GameRules.nextEnergyIn(p, t5), const Duration(minutes: 10));
+    expect(GameRules.energyAt(p, now.add(const Duration(minutes: 15))), 3);
+    expect(GameRules.energyAt(p, now.add(const Duration(minutes: 45))), 5);
+    expect(GameRules.nextEnergyIn(p, now.add(const Duration(minutes: 45))), isNull);
+  });
+
+  test("à 0 énergie on ne perd plus rien, et tout revient en 75 minutes", () {
+    var p = fresh();
+    for (var i = 0; i < 7; i++) {
+      p = GameRules.loseEnergy(p, now);
+    }
+    expect(GameRules.energyAt(p, now), 0);
+    expect(GameRules.energyAt(p, now.add(const Duration(minutes: 74))), 4);
+    expect(GameRules.energyAt(p, now.add(const Duration(minutes: 75))), 5);
+    final restored = PlayerState.fromJson(jsonDecode(jsonEncode(p.toJson())) as Map<String, dynamic>);
+    expect(GameRules.energyAt(restored, now), 0);
+  });
+
+  test("les mauvaises réponses ne rapportent pas d'XP", () {
+    final level = GameRules.nextLevel(content, fresh())!;
+    final none = GameRules.completeLevel(
+      content: content,
+      player: fresh(),
+      levelId: level.id,
+      askedIds: idsOf(content, level.id),
+      correctIds: const {},
+      now: now,
+      outOfEnergy: true,
+    );
+    expect(none.xpGained, 0);
+    expect(none.passed, isFalse);
+    expect(none.outOfEnergy, isTrue);
+  });
 }
