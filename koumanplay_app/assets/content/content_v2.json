@@ -38,7 +38,7 @@
       "order": 1,
       "title": "La force du groupe",
       "kind": "proverbes",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "baoule-7",
@@ -46,7 +46,7 @@
       "order": 2,
       "title": "La sagesse des anciens",
       "kind": "proverbes",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "baoule-8",
@@ -54,55 +54,87 @@
       "order": 3,
       "title": "Patience et parole",
       "kind": "proverbes",
-      "passRatio": 0.6
+      "passRatio": 0.7
+    },
+    {
+      "id": "baoule-9",
+      "languageId": "baoule",
+      "order": 4,
+      "passRatio": 0.7,
+      "title": "Aimer et partager",
+      "kind": "proverbes"
+    },
+    {
+      "id": "baoule-10",
+      "languageId": "baoule",
+      "order": 5,
+      "passRatio": 0.7,
+      "title": "Respect et vivre-ensemble",
+      "kind": "proverbes"
+    },
+    {
+      "id": "baoule-11",
+      "languageId": "baoule",
+      "order": 6,
+      "passRatio": 0.7,
+      "title": "Travail et paix",
+      "kind": "proverbes"
+    },
+    {
+      "id": "baoule-12",
+      "languageId": "baoule",
+      "order": 7,
+      "passRatio": 0.7,
+      "title": "Trésors baoulé",
+      "kind": "tresors"
     },
     {
       "id": "baoule-1",
       "languageId": "baoule",
-      "order": 4,
+      "order": 8,
       "title": "Salutations",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "baoule-2",
       "languageId": "baoule",
-      "order": 5,
+      "order": 9,
       "title": "La famille",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "baoule-3",
       "languageId": "baoule",
-      "order": 6,
+      "order": 10,
       "title": "Les nombres",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "baoule-4",
       "languageId": "baoule",
-      "order": 7,
+      "order": 11,
       "title": "Se présenter",
       "kind": "phrases",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "baoule-5",
       "languageId": "baoule",
-      "order": 8,
+      "order": 12,
       "title": "Au quotidien",
       "kind": "phrases",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "bete-6",
       "languageId": "bete",
       "order": 1,
-      "title": "Proverbes",
+      "title": "Sagesse bété",
       "kind": "proverbes",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "bete-1",
@@ -110,7 +142,7 @@
       "order": 2,
       "title": "Salutations",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "bete-2",
@@ -118,7 +150,7 @@
       "order": 3,
       "title": "La famille",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "bete-3",
@@ -126,7 +158,7 @@
       "order": 4,
       "title": "Les nombres",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "bete-4",
@@ -134,7 +166,7 @@
       "order": 5,
       "title": "Se présenter",
       "kind": "phrases",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "bete-5",
@@ -142,7 +174,7 @@
       "order": 6,
       "title": "Au quotidien",
       "kind": "phrases",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "dioula-6",
@@ -150,7 +182,7 @@
       "order": 1,
       "title": "Proverbes",
       "kind": "proverbes",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "dioula-1",
@@ -158,7 +190,7 @@
       "order": 2,
       "title": "Salutations",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "dioula-2",
@@ -166,7 +198,7 @@
       "order": 3,
       "title": "La famille",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "dioula-3",
@@ -174,7 +206,7 @@
       "order": 4,
       "title": "Les nombres",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "dioula-4",
@@ -182,7 +214,7 @@
       "order": 5,
       "title": "Se présenter",
       "kind": "phrases",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "dioula-5",
@@ -190,55 +222,71 @@
       "order": 6,
       "title": "Au quotidien",
       "kind": "phrases",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "senoufo-6",
       "languageId": "senoufo",
       "order": 1,
-      "title": "Proverbes",
+      "title": "Solidarité et sagesse",
       "kind": "proverbes",
-      "passRatio": 0.6
+      "passRatio": 0.7
+    },
+    {
+      "id": "senoufo-7",
+      "languageId": "senoufo",
+      "order": 2,
+      "passRatio": 0.7,
+      "title": "Vivre ensemble",
+      "kind": "proverbes"
+    },
+    {
+      "id": "senoufo-8",
+      "languageId": "senoufo",
+      "order": 3,
+      "passRatio": 0.7,
+      "title": "Trésors sénoufo",
+      "kind": "tresors"
     },
     {
       "id": "senoufo-1",
       "languageId": "senoufo",
-      "order": 2,
+      "order": 4,
       "title": "Salutations",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "senoufo-2",
       "languageId": "senoufo",
-      "order": 3,
+      "order": 5,
       "title": "La famille",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "senoufo-3",
       "languageId": "senoufo",
-      "order": 4,
+      "order": 6,
       "title": "Les nombres",
       "kind": "mots",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "senoufo-4",
       "languageId": "senoufo",
-      "order": 5,
+      "order": 7,
       "title": "Se présenter",
       "kind": "phrases",
-      "passRatio": 0.6
+      "passRatio": 0.7
     },
     {
       "id": "senoufo-5",
       "languageId": "senoufo",
-      "order": 6,
+      "order": 8,
       "title": "Au quotidien",
       "kind": "phrases",
-      "passRatio": 0.6
+      "passRatio": 0.7
     }
   ],
   "words": [],
@@ -252,9 +300,9 @@
       "question": "Que veut dire ce proverbe ?",
       "answers": [
         "On a besoin des autres pour réussir.",
-        "Il faut travailler très tôt le matin.",
-        "La cour doit toujours rester propre.",
-        "Il ne faut jamais se reposer."
+        "Chacun doit s'occuper de sa propre part du travail.",
+        "Il vaut mieux bien faire une tâche que la faire vite.",
+        "Un travail bâclé se voit toujours."
       ],
       "correct": 0,
       "explanation": "La coopération rend les tâches plus faciles et plus solides.",
@@ -269,12 +317,12 @@
       "language": null,
       "question": "Quelle idée se cache derrière ce proverbe ?",
       "answers": [
-        "Le chef doit décider seul.",
         "Les décisions importantes se prennent à plusieurs.",
-        "Il faut parler le moins possible.",
-        "Les réunions sont une perte de temps."
+        "Le chef doit d'abord écouter sa propre sagesse.",
+        "Il ne faut pas trop réfléchir avant d'agir.",
+        "Celui qui parle seul n'est pas écouté."
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "Chez les Akan, le conseil réunit plusieurs voix : une décision partagée est plus sage.",
       "xp": 20,
       "validated": false
@@ -287,12 +335,12 @@
       "language": null,
       "question": "Que nous apprend ce proverbe ?",
       "answers": [
-        "Il faut couper les arbres isolés.",
-        "Le vent est plus fort que tout.",
         "Isolé, on est plus fragile face aux difficultés.",
-        "Il faut planter des arbres partout."
+        "Il faut savoir plier pour ne pas rompre.",
+        "Les difficultés finissent toujours par passer.",
+        "Celui qui se met en avant s'expose aux critiques."
       ],
-      "correct": 2,
+      "correct": 0,
       "explanation": "Une forêt résiste au vent, un arbre seul casse : la communauté protège.",
       "xp": 20,
       "validated": false
@@ -305,12 +353,12 @@
       "language": null,
       "question": "Quel conseil donne ce proverbe ?",
       "answers": [
-        "Il faut toujours marcher vite.",
-        "Les longs voyages sont dangereux.",
         "Seul on va vite, mais ensemble on va plus loin.",
-        "Il vaut mieux voyager seul."
+        "Il faut choisir entre la vitesse et la sécurité.",
+        "Les longs voyages demandent une bonne préparation.",
+        "Mieux vaut avancer seul que mal accompagné."
       ],
-      "correct": 2,
+      "correct": 0,
       "explanation": "Les grands projets demandent du temps et des partenaires.",
       "xp": 20,
       "validated": false
@@ -324,9 +372,9 @@
       "question": "Quelle idée se rapproche de ce proverbe ?",
       "answers": [
         "Demander de l'aide est une force.",
-        "Il ne faut jamais voyager.",
-        "Les chemins sont toujours courts.",
-        "On doit tout savoir seul."
+        "Il faut toujours suivre le chemin de ses parents.",
+        "Celui qui connaît sa route n'a besoin de personne.",
+        "La prudence évite bien des erreurs."
       ],
       "correct": 0,
       "explanation": "Poser une question permet d'avancer avec plus de confiance.",
@@ -341,12 +389,12 @@
       "language": null,
       "question": "Que veut dire ce proverbe ?",
       "answers": [
-        "Les jeunes ont une meilleure vue.",
         "L'expérience des aînés permet de voir plus loin.",
-        "Il faut rester assis pour réfléchir.",
-        "Les vieillards ne se lèvent plus."
+        "Les jeunes doivent rester debout devant les anciens.",
+        "La patience permet de mieux observer les choses.",
+        "Il faut se reposer pour avoir les idées claires."
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "Les années d'expérience donnent un regard que la jeunesse n'a pas encore.",
       "xp": 20,
       "validated": false
@@ -359,12 +407,12 @@
       "language": null,
       "question": "Quel est le sens de ce proverbe ?",
       "answers": [
-        "Les enfants ne doivent pas poser de questions.",
         "Certaines vérités sont évidentes, même pour les plus jeunes.",
-        "Il faut tout apprendre aux enfants.",
-        "Les enfants ne comprennent rien."
+        "La foi doit s'apprendre dès l'enfance.",
+        "Les enfants doivent respecter ce qui est sacré.",
+        "Les parents ne peuvent pas tout expliquer à leurs enfants."
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "Certaines choses n'ont pas besoin d'être enseignées : chacun les perçoit naturellement.",
       "xp": 20,
       "validated": false
@@ -377,12 +425,12 @@
       "language": null,
       "question": "Ce proverbe est à l'origine du symbole Sankofa. Que signifie-t-il ?",
       "answers": [
-        "Il ne faut jamais regarder en arrière.",
         "On peut retourner à ses racines pour mieux avancer.",
-        "Oublier est une faute grave.",
-        "Il faut tout noter pour ne rien oublier."
+        "Il faut toujours vérifier qu'on n'a rien oublié.",
+        "On a le droit de changer d'avis.",
+        "Le passé est passé, il faut regarder devant."
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "Sankofa, l'oiseau qui regarde en arrière : connaître son passé aide à construire l'avenir.",
       "xp": 20,
       "validated": false
@@ -395,12 +443,12 @@
       "language": null,
       "question": "Que veut dire cette expression ?",
       "answers": [
-        "Il faut garder ses vieux ustensiles.",
         "L'expérience et l'ancienneté donnent les meilleurs résultats.",
-        "Les nouvelles marmites sont dangereuses.",
-        "Il faut cuisiner longtemps."
+        "Il faut garder les recettes des anciens.",
+        "Ce qui est simple est souvent le meilleur.",
+        "Il ne faut pas jeter ce qui peut encore servir."
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "On reconnaît la valeur de ce qui a fait ses preuves avec le temps.",
       "xp": 20,
       "validated": false
@@ -413,12 +461,12 @@
       "language": null,
       "question": "Que veut transmettre cette phrase ?",
       "answers": [
-        "Les bibliothèques sont fragiles.",
         "Les savoirs des aînés disparaissent s'ils ne sont pas transmis.",
-        "Les vieillards lisent beaucoup.",
-        "Il faut construire plus de bibliothèques."
+        "Les aînés sont les gardiens des livres et des archives.",
+        "Il faut honorer les anciens après leur mort.",
+        "Le savoir écrit vaut plus que la parole."
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "Cette phrase, popularisée par Amadou Hampâté Bâ, rappelle l'urgence de transmettre les savoirs oraux.",
       "xp": 20,
       "validated": false
@@ -431,12 +479,12 @@
       "language": null,
       "question": "Quel conseil donne ce proverbe ?",
       "answers": [
-        "Il faut boire beaucoup d'eau.",
         "Il faut réfléchir avant de parler.",
-        "Il ne faut jamais parler.",
-        "L'eau est précieuse."
+        "Une promesse doit toujours être tenue.",
+        "Les paroles s'oublient aussi vite qu'elles sont dites.",
+        "Il ne faut pas gaspiller ce qui est précieux."
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "Une parole dite ne se reprend pas : on mesure ses mots.",
       "xp": 20,
       "validated": false
@@ -450,9 +498,9 @@
       "question": "Que veut dire ce proverbe ?",
       "answers": [
         "On ne change pas sa nature profonde.",
-        "Les crocodiles vivent dans les arbres.",
-        "Il ne faut pas jeter de bois dans l'eau.",
-        "Avec le temps, tout se transforme."
+        "Avec le temps, on finit par s'adapter à son milieu.",
+        "Il faut se méfier des apparences.",
+        "La patience ne suffit pas sans le talent."
       ],
       "correct": 0,
       "explanation": "On peut imiter les autres, mais on reste qui on est.",
@@ -467,12 +515,12 @@
       "language": null,
       "question": "Quelle idée exprime ce proverbe ?",
       "answers": [
-        "Il faut toujours rentrer chez soi.",
         "Connaître ses origines aide à trouver sa voie.",
-        "Les voyages sont inutiles.",
-        "Il faut avoir une carte."
+        "Quand on hésite, il vaut mieux faire demi-tour.",
+        "Il faut demander conseil avant de partir.",
+        "Il ne faut jamais quitter sa terre natale."
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "Nos racines sont une boussole quand l'avenir est flou.",
       "xp": 20,
       "validated": false
@@ -485,12 +533,12 @@
       "language": null,
       "question": "Que nous apprend ce proverbe ?",
       "answers": [
-        "Les fruits sont meilleurs que les racines.",
         "Attendre est difficile, mais la récompense en vaut la peine.",
-        "Il ne faut pas manger de racines.",
-        "Il faut planter des arbres fruitiers."
+        "Ce qui commence mal finit souvent mal.",
+        "Il faut savoir profiter des moments doux de la vie.",
+        "Le travail de la terre demande beaucoup de soins."
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "La patience coûte sur le moment, mais elle porte ses fruits.",
       "xp": 20,
       "validated": false
@@ -503,13 +551,823 @@
       "language": null,
       "question": "Quel est le sens de ce proverbe ?",
       "answers": [
-        "Les fleurs sont plus belles que les fruits.",
         "Le mensonge peut sembler réussir, mais il ne mène à rien de durable.",
-        "Il faut planter des fleurs.",
-        "Mentir est parfois utile."
+        "Un beau discours vaut mieux qu'un long silence.",
+        "Les apparences reflètent souvent la réalité.",
+        "Un petit mensonge peut parfois rendre service."
       ],
-      "correct": 1,
+      "correct": 0,
       "explanation": "Un mensonge peut briller un moment, il ne construit rien de solide.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-01",
+      "levelId": "baoule-9",
+      "proverb": "L'être humain est meilleur que l'or.",
+      "original": "srã ble ɔ ti kpa tra sika ɔklwɛ",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Une personne vaut plus que toutes les richesses.",
+        "La richesse finit toujours par se perdre.",
+        "Un homme honnête finit par devenir riche.",
+        "Il faut travailler dur pour gagner sa vie."
+      ],
+      "correct": 0,
+      "explanation": "Chez les Baoulé, l'or est le bien le plus précieux, mais l'être humain vaut plus encore : on aime son prochain sans cupidité. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-02",
+      "levelId": "baoule-9",
+      "proverb": "L'amour appelle l'amour.",
+      "original": "klolɛ flɛ klolɛ",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Celui qui aime les autres est aimé en retour.",
+        "L'amour se mérite par les cadeaux.",
+        "Il faut aimer sans rien attendre en retour.",
+        "Le véritable amour est rare."
+      ],
+      "correct": 0,
+      "explanation": "Aimer les autres attire leur amour : si chacun aime, le monde se remplit d'amour. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-03",
+      "levelId": "baoule-9",
+      "proverb": "Le jour de ton prochain est aussi ton jour.",
+      "original": "viégu i tchin ɔ ti ɔ liɛ",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Il faut être solidaire de ceux qui nous entourent.",
+        "Chaque jour apporte sa part de bonheur.",
+        "Il faut savoir attendre son tour.",
+        "Le temps passe pour tout le monde de la même façon."
+      ],
+      "correct": 0,
+      "explanation": "Ce proverbe rappelle à l'ordre celui qui s'éloigne de la solidarité. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-04",
+      "levelId": "baoule-9",
+      "proverb": "Chaque arbre a ses fruits.",
+      "original": "ɔ le baka kun ni ma",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Celui qui fait le bien en récoltera les fruits.",
+        "Il faut planter des arbres pour ses enfants.",
+        "Il ne faut pas convoiter ce qui appartient aux autres.",
+        "Tout finit par mûrir avec le temps."
+      ],
+      "correct": 0,
+      "explanation": "Le bienfait n'est jamais perdu : celui qui fait le bien sera béni. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-05",
+      "levelId": "baoule-9",
+      "proverb": "Si on ne voit pas le cadavre, on ne fabrique pas son cercueil.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Il ne faut pas juger quelqu'un sans le connaître.",
+        "Il faut respecter les morts.",
+        "Il vaut mieux croire ce que disent les autres.",
+        "Les mauvaises nouvelles arrivent toujours vite."
+      ],
+      "correct": 0,
+      "explanation": "Ce proverbe combat les préjugés : on ne prête pas de défauts à quelqu'un sans avoir vécu avec lui. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-06",
+      "levelId": "baoule-9",
+      "proverb": "On n'emballe pas la vie dans une feuille de taro.",
+      "original": "be kiti man koko gna nu",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "La vie est précieuse, il faut la protéger.",
+        "Il ne faut pas confier ses secrets à n'importe qui.",
+        "Les choses simples sont souvent les plus solides.",
+        "Il faut bien choisir ses outils pour chaque travail."
+      ],
+      "correct": 0,
+      "explanation": "La feuille de taro sèche et se déchire vite au soleil : on ne confie pas la vie, premier droit de chacun, à quelque chose d'aussi fragile. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-07",
+      "levelId": "baoule-10",
+      "proverb": "Les champignons ne poussent pas au faîte de l'arbre.",
+      "original": "waka ti nu fí mã ŋdre",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Personne ne doit se placer au-dessus de l'autorité.",
+        "Chaque chose pousse à l'endroit qui lui convient.",
+        "Les plus petits sont souvent les plus utiles.",
+        "Il ne faut pas chercher la richesse trop loin."
+      ],
+      "correct": 0,
+      "explanation": "L'enfant qui grandit à l'ombre de ses parents, dans le respect, profite de leurs conseils pour réussir. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-08",
+      "levelId": "baoule-10",
+      "proverb": "On n'exerce pas le pouvoir en ignorant les enfants.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Ceux qui dirigent doivent tenir compte des jeunes.",
+        "Les enfants doivent apprendre à obéir aux chefs.",
+        "Un chef doit avoir une grande famille.",
+        "Le pouvoir se transmet de père en fils."
+      ],
+      "correct": 0,
+      "explanation": "Le pouvoir des anciens se soucie de l'avenir de la nouvelle génération : les jeunes comptent. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-09",
+      "levelId": "baoule-10",
+      "proverb": "On ne fonde pas un campement avec quelqu'un avec qui on ne s'entend pas.",
+      "original": "be ni srã be di mã be bo mã nãmwe",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Vivre et travailler ensemble demande de bien s'entendre.",
+        "Il faut bien choisir l'endroit où l'on s'installe.",
+        "On ne doit jamais quitter son village.",
+        "Chacun doit construire sa propre maison."
+      ],
+      "correct": 0,
+      "explanation": "Un véritable appel à l'entente pour une vie sociale harmonieuse. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-10",
+      "levelId": "baoule-10",
+      "proverb": "Avant de te marier, renseigne-toi.",
+      "original": "adja bisa",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Il faut bien connaître la personne avant de s'engager.",
+        "Il faut l'accord de ses parents pour se marier.",
+        "Le mariage doit se préparer longtemps à l'avance.",
+        "Il faut choisir un conjoint de sa région."
+      ],
+      "correct": 0,
+      "explanation": "Prendre le temps de connaître le caractère de l'autre évite bien des unions difficiles. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-11",
+      "levelId": "baoule-10",
+      "proverb": "Le linge sale se lave en famille.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "On règle d'abord ses différends en famille, avant de les exposer.",
+        "Il faut garder sa maison propre et rangée.",
+        "On ne doit jamais parler de sa famille aux autres.",
+        "Les tâches ménagères se partagent en famille."
+      ],
+      "correct": 0,
+      "explanation": "On ne saute pas d'étape : chef de famille, chef de village, chef de canton, puis roi. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-12",
+      "levelId": "baoule-11",
+      "proverb": "Si tu ne te fatigues pas, tu ne riras pas.",
+      "original": "a fɛ mã a sri mã",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Pour connaître le bonheur, il faut travailler.",
+        "Il faut savoir se reposer pour profiter de la vie.",
+        "Le rire est le meilleur remède à la fatigue.",
+        "Ceux qui travaillent trop oublient de rire."
+      ],
+      "correct": 0,
+      "explanation": "Celui qui veut jouir du bonheur doit se mettre au travail. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-13",
+      "levelId": "baoule-11",
+      "proverb": "C'est la personne qui creuse dans la termitière qui a la poitrine rouge.",
+      "original": "srã mɔ ɔ fu srwe jɛ i wue ɔ blo",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Celui qui mérite les honneurs se reconnaît à ses efforts.",
+        "Le travail de la terre abîme le corps.",
+        "Il faut se protéger avant un travail difficile.",
+        "Les honneurs reviennent toujours aux plus âgés."
+      ],
+      "correct": 0,
+      "explanation": "La terre rouge de la termitière colore la poitrine de celui qui creuse : ses exploits se voient. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-14",
+      "levelId": "baoule-11",
+      "proverb": "Si tu déterres l'igname, recouvre les racines du manioc avec de la terre.",
+      "original": "sè a tu duo kata agba bo",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Il faut protéger les ressources pour les générations futures.",
+        "Il faut finir un travail avant d'en commencer un autre.",
+        "Il faut récolter chaque culture au bon moment.",
+        "Il faut aider son voisin dans ses champs."
+      ],
+      "correct": 0,
+      "explanation": "Une image tirée des champs pour appeler à préserver la nature et en faire profiter ceux qui viendront après. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-15",
+      "levelId": "baoule-11",
+      "proverb": "Là où on garde sa poterie d'huile, on n'y lance pas des pierres.",
+      "original": "lika nga be ŋgo sɛ ɔ o lɛ be to mã lɛ jɔbu",
+      "language": "Baoulé",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "On ne fait pas de mal à ce qui nous fait vivre.",
+        "Il faut ranger ses biens précieux en lieu sûr.",
+        "La colère fait perdre ce qu'on a de plus cher.",
+        "Il ne faut pas se disputer devant les enfants."
+      ],
+      "correct": 0,
+      "explanation": "Lancer des pierres casserait les poteries et ferait perdre l'huile : on prend soin de sa communauté et de son pays. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-16",
+      "levelId": "baoule-11",
+      "proverb": "C'est quand il y a la paix au village qu'il peut y avoir la paix en brousse.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "La paix commence en famille avant de s'étendre à toute la société.",
+        "Le village est plus sûr que la brousse.",
+        "Il faut faire la paix avec la nature.",
+        "Quand tout va bien au village, on peut partir en voyage."
+      ],
+      "correct": 0,
+      "explanation": "Le village, c'est la famille ; la brousse, toute la société : s'entendre avec les siens permet de s'entendre avec les autres. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-bci-17",
+      "levelId": "baoule-11",
+      "proverb": "Le pardon est le dernier mot.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Il faut savoir pardonner pour mettre fin aux conflits.",
+        "Celui qui parle en dernier a toujours raison.",
+        "Il faut attendre que l'autre s'excuse en premier.",
+        "Un conflit se règle par la parole des anciens."
+      ],
+      "correct": 0,
+      "explanation": "Il n'y a plus rien à dire à celui qui refuse le pardon : les sages poussent ainsi à la réconciliation. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-01",
+      "levelId": "senoufo-6",
+      "proverb": "Quand le doigt fait mal, l'œil n'a pas sommeil.",
+      "original": "kabani kana ja ɲɛ̃pini ko bãna wunɔ̃i",
+      "language": "Sénoufo",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Il faut être solidaire de ceux qui souffrent.",
+        "Une petite douleur peut empêcher de dormir.",
+        "Il faut soigner un problème avant qu'il grandisse.",
+        "Il faut rester vigilant la nuit."
+      ],
+      "correct": 0,
+      "explanation": "L'amour du prochain pousse à aider ceux qui sont en difficulté : le vrai bonheur est partagé. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-02",
+      "levelId": "senoufo-6",
+      "proverb": "Sur la tête du méchant, il ne pousse pas de cornes.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "La méchanceté n'apporte ni honneur ni dignité.",
+        "Les méchants finissent toujours punis.",
+        "Il faut se méfier de ceux qui se vantent.",
+        "La force ne fait pas le chef."
+      ],
+      "correct": 0,
+      "explanation": "Les cornes symbolisent l'autorité, la dignité et l'honneur : le méchant n'est ni béni ni élevé. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-03",
+      "levelId": "senoufo-6",
+      "proverb": "Il ne faut pas demander au sel d'être sucré.",
+      "original": "faɡa jasɔɡi jeɡi tɛ̃nɛ̃ sikaʀawi dɛlɛi",
+      "language": "Sénoufo",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Il faut accepter les autres dans leur différence.",
+        "Chaque plat a sa recette.",
+        "Il faut savoir doser les choses.",
+        "La vérité est parfois difficile à entendre."
+      ],
+      "correct": 0,
+      "explanation": "Exiger de l'autre qu'il soit ce qu'il n'est pas crée des conflits : chacun est utile à sa façon, comme le sel dans la sauce. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-04",
+      "levelId": "senoufo-6",
+      "proverb": "L'enfant obéissant ne meurt pas de faim.",
+      "original": "kateʔe ko pi lowe kui",
+      "language": "Sénoufo",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Écouter ses parents apporte des avantages.",
+        "Un enfant doit apprendre à se nourrir seul.",
+        "Les parents doivent d'abord nourrir leurs enfants.",
+        "Il faut partager sa nourriture avec les enfants."
+      ],
+      "correct": 0,
+      "explanation": "Les parents sont ceux qui trouvent la nourriture : l'obéissance ne produit que des avantages. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-05",
+      "levelId": "senoufo-6",
+      "proverb": "L'homme est mieux que l'argent.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Les personnes passent avant l'argent.",
+        "Un homme travailleur gagne toujours de l'argent.",
+        "Il vaut mieux prêter de l'argent qu'en emprunter.",
+        "Un homme se juge à sa richesse."
+      ],
+      "correct": 0,
+      "explanation": "Les Sénoufo font primer l'humanité en toute circonstance (les Baoulé disent de même : « l'être humain est meilleur que l'or »). Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-06",
+      "levelId": "senoufo-7",
+      "proverb": "Le criquet est seul dans son trou, mais il n'est pas le seul sous l'arbre.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Le chef décide en concertation avec les sages.",
+        "Chacun est seul face à ses problèmes.",
+        "Les petits ont aussi leur place dans la communauté.",
+        "Il faut sortir de chez soi pour se faire des amis."
+      ],
+      "correct": 0,
+      "explanation": "Le criquet, c'est le chef : il paraît seul car les décisions sont prises en son nom, mais il a le soutien des notables et des sages. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-07",
+      "levelId": "senoufo-7",
+      "proverb": "La femme d'un tel est belle, cela ne veut pas dire qu'elle a bon caractère.",
+      "original": "wɔ̃ co wu ɲɔ̃ ɡiɡe j̄o we fuɡi ɲɔ̃i",
+      "language": "Sénoufo",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "La vraie beauté est celle du comportement.",
+        "Il ne faut pas envier la femme d'un autre.",
+        "La beauté se transmet de mère en fille.",
+        "Il faut écouter les compliments avec méfiance."
+      ],
+      "correct": 0,
+      "explanation": "La beauté physique peut tromper : les Sénoufo conseillent de se fier à la beauté intérieure. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-08",
+      "levelId": "senoufo-7",
+      "proverb": "Le matin, les oiseaux s'envolent, mais le soir, ils reviennent tous au nid.",
+      "original": "ɲiɡidãni fij̄ãɡele nalali cãɡi ɡakɔ ɡolugo ɡezaʀi mã",
+      "language": "Sénoufo",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "On peut partir chercher ailleurs, mais il faut revenir à ses racines.",
+        "Il faut se lever tôt pour réussir.",
+        "Il faut rentrer chez soi avant la nuit.",
+        "Les enfants finissent toujours par quitter leurs parents."
+      ],
+      "correct": 0,
+      "explanation": "Le matin est le temps de la recherche, le soir celui du retour : l'expatrié qui revient enrichit son pays. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-09",
+      "levelId": "senoufo-7",
+      "proverb": "Dieu s'appuie sur toi-même pour t'aider.",
+      "original": "kolocɔlɔ sewe siʔi mu na bu mu dɛbɛ",
+      "language": "Sénoufo",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Il faut faire des efforts pour réussir.",
+        "Il faut aider les autres comme Dieu nous aide.",
+        "La prière suffit pour obtenir ce qu'on veut.",
+        "Dieu aide d'abord ceux qui sont dans le besoin."
+      ],
+      "correct": 0,
+      "explanation": "Garder espoir, mais redoubler d'efforts : l'effort favorise la réussite. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-10",
+      "levelId": "senoufo-7",
+      "proverb": "C'est celui qui a tué la panthère qui doit avoir la tête rasée.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Les honneurs reviennent à celui qui a vraiment excellé.",
+        "Les chasseurs doivent respecter les animaux.",
+        "Il faut finir ce qu'on a commencé.",
+        "Celui qui prend des risques doit en payer le prix."
+      ],
+      "correct": 0,
+      "explanation": "Chez les Sénoufo, on honore le chasseur dozo qui a tué une panthère en lui rasant la tête : le mérite se reconnaît. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "nz-sen-11",
+      "levelId": "senoufo-7",
+      "proverb": "Les chefs n'arrangent pas leurs palabres devant l'assemblée.",
+      "original": "kaʔa fɔbele ko be kasi cɔ̃ʀi kaʔa sibele jɛmai",
+      "language": "Sénoufo",
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Les conflits entre responsables se règlent avec discrétion.",
+        "Les chefs doivent rendre la justice en public.",
+        "Un chef ne doit jamais se disputer.",
+        "Les palabres doivent être réglées par les anciens."
+      ],
+      "correct": 0,
+      "explanation": "Régler les différends loin des regards préserve le respect et évite les tensions. Source : Touman Kouadio H., « Proverbes et culture : le cas des proverbes baoulé et sénoufo de Côte d'Ivoire », revue Nzassa, Université Alassane Ouattara.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "afro-bev-01",
+      "levelId": "bete-6",
+      "proverb": "Lorsque l'œil pleure, le nez ne se réjouit pas.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Le malheur d'une personne touche aussi ses proches.",
+        "Il ne faut pas montrer sa tristesse aux autres.",
+        "Les larmes finissent toujours par sécher.",
+        "On ne peut pas être heureux quand on est malade."
+      ],
+      "correct": 0,
+      "explanation": "Le malheur de quelqu'un touche aussi ses parents et ses amis. Source : Dr Y., afrolegends.com.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "afro-bev-02",
+      "levelId": "bete-6",
+      "proverb": "Quand le doigt ne sait où aller, il entre dans le nez.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Trop d'inactivité pousse à faire des bêtises.",
+        "Quand on ne sait pas quoi faire, il faut demander conseil.",
+        "Les mauvaises habitudes commencent dès l'enfance.",
+        "Il faut savoir où l'on va avant de partir."
+      ],
+      "correct": 0,
+      "explanation": "Trop d'inactivité conduit à n'importe quelle bêtise. Source : Dr Y., afrolegends.com.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "afro-bev-03",
+      "levelId": "bete-6",
+      "proverb": "Les doigts de la main n'ont pas la même longueur.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Les hommes ne sont pas tous égaux.",
+        "Il faut unir ses forces comme les doigts de la main.",
+        "Les aînés doivent passer avant les jeunes.",
+        "Il ne faut pas comparer ses enfants entre eux."
+      ],
+      "correct": 0,
+      "explanation": "Les hommes ne sont jamais égaux. Source : Dr Y., afrolegends.com.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "zoko-bev-01",
+      "levelId": "bete-6",
+      "proverb": "Seul son coiffeur peut toucher la tête du roi.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Pour obtenir quelque chose de quelqu'un, il faut d'abord gagner sa confiance.",
+        "Seuls les proches peuvent critiquer un chef.",
+        "Il faut respecter le corps du roi.",
+        "Chaque métier a ses privilèges."
+      ],
+      "correct": 0,
+      "explanation": "Pour profiter de quelqu'un, il faut d'abord gagner son amitié. Source : Habib Zoko, Proverbes ivoiriens chez les Bétés.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "zoko-bev-02",
+      "levelId": "bete-6",
+      "proverb": "Tu donnes des conseils au renard, donnes-en aussi à la poule.",
+      "original": null,
+      "language": null,
+      "question": "Que veut dire ce proverbe ?",
+      "answers": [
+        "Celui qui est en danger doit aussi être prudent.",
+        "Il ne faut pas faire confiance aux rusés.",
+        "Il faut écouter les deux camps avant de juger.",
+        "Les conseils ne servent à rien aux méchants."
+      ],
+      "correct": 0,
+      "explanation": "Le renard mange les poules : la poule, elle, ne doit pas s'éloigner de chez elle. Source : Habib Zoko, Proverbes ivoiriens chez les Bétés.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-bci-01",
+      "levelId": "baoule-12",
+      "proverb": "Masque portrait mblo",
+      "original": null,
+      "language": null,
+      "question": "Quand sortent les masques mblo ?",
+      "answers": [
+        "Lors de danses de divertissement",
+        "Lors des funérailles",
+        "Pour l'initiation des garçons",
+        "Pour rendre la justice"
+      ],
+      "correct": 0,
+      "explanation": "Les masques mblo, très appréciés des Baoulé, sortent lors de danses de divertissement. Ils sont vus comme les portraits de personnes connues. Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-bci-02",
+      "levelId": "baoule-12",
+      "proverb": "Pendentifs en or baoulé",
+      "original": null,
+      "language": null,
+      "question": "À quoi les objets en or sont-ils liés chez les Baoulé ?",
+      "answers": [
+        "Aux esprits des ancêtres",
+        "Au mariage",
+        "À la royauté seulement",
+        "À la protection des récoltes"
+      ],
+      "correct": 0,
+      "explanation": "Les objets en or sont les seules œuvres baoulé liées aux esprits des ancêtres. On les sort lors des grandes occasions, comme les funérailles. Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-bci-03",
+      "levelId": "baoule-12",
+      "proverb": "Pendentifs en or baoulé",
+      "original": null,
+      "language": null,
+      "question": "Avec quelle technique ces pendentifs sont-ils coulés ?",
+      "answers": [
+        "La cire perdue",
+        "Le martelage à froid",
+        "Le filage de l'or",
+        "Le moulage dans le sable"
+      ],
+      "correct": 0,
+      "explanation": "L'orfèvre façonne le modèle en cire ; la cire fond dans un moule où l'on verse ensuite l'or liquide. Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-bci-04",
+      "levelId": "baoule-12",
+      "proverb": "Pendentif au front marqué « ngwa »",
+      "original": null,
+      "language": null,
+      "question": "Que signifie « ngwa », la marque en croissant sur le front ?",
+      "answers": [
+        "La lune",
+        "Le soleil",
+        "L'étoile du matin",
+        "La rivière"
+      ],
+      "correct": 0,
+      "explanation": "La scarification en forme de croissant sur le front s'appelle ngwa, la « lune ». Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-bci-05",
+      "levelId": "baoule-12",
+      "proverb": "Couple de statuettes asye usu",
+      "original": null,
+      "language": null,
+      "question": "Que représentent souvent les statuettes baoulé sculptées par paires ?",
+      "answers": [
+        "Des esprits de la brousse",
+        "Des ancêtres de la famille",
+        "Des jumeaux",
+        "Un roi et une reine"
+      ],
+      "correct": 0,
+      "explanation": "Elles représentent souvent les asye usu, esprits de la brousse ; on les sculpte belles et parées pour les séduire. Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-bci-06",
+      "levelId": "baoule-12",
+      "proverb": "Masque kplé kplé",
+      "original": null,
+      "language": null,
+      "question": "Dans quelle danse le masque kplé kplé apparaît-il en premier ?",
+      "answers": [
+        "La danse goli",
+        "Le zaouli",
+        "L'abissa",
+        "Le boloye"
+      ],
+      "correct": 0,
+      "explanation": "Le kplé kplé ouvre la danse goli, où quatre paires de masques se succèdent ; il est porté par de jeunes garçons. Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-bci-07",
+      "levelId": "baoule-12",
+      "proverb": "Poulie de métier à tisser",
+      "original": null,
+      "language": null,
+      "question": "À quoi sert une poulie de métier à tisser ?",
+      "answers": [
+        "À soutenir et séparer les fils",
+        "À enrouler le fil filé",
+        "À tasser les fils tissés",
+        "À teindre les bandes de tissu"
+      ],
+      "correct": 0,
+      "explanation": "Placée au-dessus du tisserand, la poulie soutient les fils ; on la décore d'une sculpture agréable à regarder. Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-sen-01",
+      "levelId": "senoufo-8",
+      "proverb": "Maternité sénoufo",
+      "original": null,
+      "language": null,
+      "question": "Dans la société sénoufo, par qui l'héritage se transmet-il ?",
+      "answers": [
+        "Par les femmes (lignée maternelle)",
+        "Par le fils aîné",
+        "Par le chef du bois sacré",
+        "Par les forgerons"
+      ],
+      "correct": 0,
+      "explanation": "La maternité des ancêtres est centrale chez les Sénoufo, où l'héritage se transmet par les femmes. Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-sen-02",
+      "levelId": "senoufo-8",
+      "proverb": "Maternité sénoufo",
+      "original": null,
+      "language": null,
+      "question": "Comment s'appelle la Grande Mère qui nourrit les initiés du « lait du savoir » ?",
+      "answers": [
+        "Katyeleeo (ou Maleeo)",
+        "Abla Pokou",
+        "Mami Wata",
+        "Yaa Asantewaa"
+      ],
+      "correct": 0,
+      "explanation": "Pour certains Sénoufo, la Grande Mère Katyeleeo, ou Maleeo, nourrit les jeunes initiés du « lait du savoir ». Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-sen-03",
+      "levelId": "senoufo-8",
+      "proverb": "Casque sénoufo",
+      "original": null,
+      "language": null,
+      "question": "Ce casque marquait le passage d'un garçon à une nouvelle classe d'âge, avant son initiation à…",
+      "answers": [
+        "Le Poro",
+        "Le Sandogo",
+        "Le Goli",
+        "Le Dipri"
+      ],
+      "correct": 0,
+      "explanation": "Ce casque était porté lors des rituels de passage d'une classe d'âge à l'autre, avant l'initiation au Poro. Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-sen-04",
+      "levelId": "senoufo-8",
+      "proverb": "Oiseau-trophée sénoufo",
+      "original": null,
+      "language": null,
+      "question": "À qui remettait-on l'oiseau-trophée ?",
+      "answers": [
+        "Au vainqueur d'un concours de culture à la houe",
+        "Au meilleur chasseur",
+        "Au meilleur danseur",
+        "Au plus jeune initié"
+      ],
+      "correct": 0,
+      "explanation": "Le bâton surmonté de l'oiseau récompense le vainqueur d'un concours de culture entre jeunes hommes. Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
+      "xp": 20,
+      "validated": false
+    },
+    {
+      "id": "cma-q-sen-05",
+      "levelId": "senoufo-8",
+      "proverb": "Oiseau-trophée sénoufo",
+      "original": null,
+      "language": null,
+      "question": "Quel oiseau est représenté sur ce trophée ?",
+      "answers": [
+        "Un aigle en vol",
+        "Un calao",
+        "Un hibou",
+        "Un vautour"
+      ],
+      "correct": 0,
+      "explanation": "Le trophée représente un aigle en vol, qui surmontait un long bâton. Source : The Cleveland Museum of Art (Open Access). Voir la fiche dans la Bibliothèque.",
       "xp": 20,
       "validated": false
     }
@@ -617,5 +1475,11 @@
       ],
       "notePrompt": "Comment ça s'est passé ?"
     }
-  ]
+  ],
+  "settings": {
+    "eventMinDiamonds": 3,
+    "eventMinLevel": 2
+  },
+  "works": [],
+  "events": []
 }

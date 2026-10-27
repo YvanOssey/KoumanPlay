@@ -43,7 +43,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       if (_signInMode) {
         await backend.signIn(email: _email.text.trim(), password: _password.text);
         await ref.read(playerProvider.notifier).pullAfterSignIn();
-        if (mounted) context.go('/home');
+        if (mounted) context.go('/play');
       } else {
         await backend.ensureSession();
         await backend.upgradeAccount(email: _email.text.trim(), password: _password.text);

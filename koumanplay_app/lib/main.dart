@@ -59,7 +59,9 @@ class KoumanPlayApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       routerConfig: ref.watch(routerProvider),
-      builder: (context, child) => MobileFrame(child: child ?? const SizedBox()),
+      // Le texte suit le réglage du téléphone, mais plafonné pour que les écrans ne cassent pas.
+      builder: (context, child) =>
+          MediaQuery.withClampedTextScaling(maxScaleFactor: 1.3, child: MobileFrame(child: child ?? const SizedBox())),
     );
   }
 }

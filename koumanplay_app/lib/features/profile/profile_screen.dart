@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/game_rules.dart';
 import '../../core/theme.dart';
-import '../../models/player.dart';
 import '../../services/providers.dart';
+import '../../widgets/avatar_view.dart';
 import '../../widgets/common.dart';
+import '../../widgets/cauris.dart';
+import '../play/map_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -17,7 +19,8 @@ class ProfileScreen extends ConsumerWidget {
     final content = ref.watch(contentProvider);
     final backend = ref.watch(backendProvider);
     final theme = Theme.of(context);
-    final doneChallenges = player.challenges.values.where((c) => c.status == ChallengeStatus.done).length;
+    final learning = GameRules.learningLanguage(content, player);
+    final level = GameRules.playerLevel(player.xp);
 
     return SafeArea(
       child: ListView(
@@ -25,12 +28,31 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 34,
-                backgroundColor: AppColors.purple100,
-                child: Text(
-                  player.firstName.isEmpty ? '?' : player.firstName[0].toUpperCase(),
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.purple500),
+              // Toucher l'avatar ouvre l'éditeur ; le crayon le rend visible.
+              Semantics(
+                button: true,
+                label: 'Modifier mon avatar',
+                child: GestureDetector(
+                  onTap: () => context.push('/avatar'),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      AvatarView(config: player.avatarOrDefault, size: 76),
+                      Positioned(
+                        right: -2,
+                        bottom: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: AppColors.purple500,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.white, width: 2),
+                          ),
+                          child: const Icon(Icons.edit_rounded, size: 14, color: AppColors.white),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -43,6 +65,14 @@ class ProfileScreen extends ConsumerWidget {
                       player.isSenior ? 'Aîné' : 'Jeune',
                       style: const TextStyle(color: AppColors.gray500),
                     ),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () => context.push('/avatar'),
+                      child: const Text(
+                        'Personnaliser mon avatar',
+                        style: TextStyle(color: AppColors.purple500, fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -51,15 +81,52 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.section),
           Row(
             children: [
-              Expanded(child: _Metric(value: '${GameRules.playerLevel(player.xp)}', label: 'Niveau')),
+              Expanded(child: _Metric(value: '$level', label: 'Niveau')),
               const SizedBox(width: 10),
               Expanded(child: _Metric(value: '${player.xp}', label: 'XP', color: AppColors.green500)),
               const SizedBox(width: 10),
-              Expanded(child: _Metric(value: '${player.streak}', label: 'Série', color: AppColors.warning)),
+              Expanded(child: _Metric(value: '${player.cauris}', label: 'Cauris', color: caurisColor)),
               const SizedBox(width: 10),
-              Expanded(child: _Metric(value: '$doneChallenges', label: 'Défis')),
+              Expanded(child: _Metric(value: '${player.streak}', label: 'Série', color: AppColors.warning)),
             ],
           ),
+          const SizedBox(height: 12),
+          KpProgressBar(value: GameRules.levelProgress(player.xp), color: AppColors.green500),
+          const SizedBox(height: 6),
+          Text(
+            '${GameRules.xpIntoLevel(player.xp)} / ${GameRules.xpPerPlayerLevel} XP avant le niveau ${level + 1}',
+            style: const TextStyle(color: AppColors.gray500, fontSize: 13),
+          ),
+          if (learning != null) ...[
+            const SizedBox(height: AppSpacing.section),
+            AppCard(
+              onTap: () async {
+                final chosen = await showModalBottomSheet<String>(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => const LanguagePickerSheet(),
+                );
+                if (chosen != null) await ref.read(playerProvider.notifier).setLearningLanguage(chosen);
+              },
+              child: Row(
+                children: [
+                  Icon(Icons.translate_rounded, color: Color(learning.color)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('J\'apprends', style: TextStyle(color: AppColors.gray500, fontSize: 13)),
+                        Text(learning.name, style: theme.textTheme.titleMedium?.copyWith(color: Color(learning.color))),
+                      ],
+                    ),
+                  ),
+                  const Text('Changer', style: TextStyle(color: AppColors.purple500, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.section),
           Text('Badges', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),

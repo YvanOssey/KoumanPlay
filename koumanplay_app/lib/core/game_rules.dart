@@ -60,6 +60,122 @@ class GameRules {
     return player.copyWith(energy: current - 1, energySince: anchor, updatedAt: now);
   }
 
+  /// Rend [amount] énergies (entraînement), sans dépasser le maximum.
+  static PlayerState gainEnergy(PlayerState player, DateTime now, int amount) {
+    final current = energyAt(player, now);
+    if (current >= PlayerState.maxEnergy) return player;
+    final since = player.energySince;
+    final anchor = since == null ? now : since.add(energyRefill * _refills(player, now));
+    return player.copyWith(
+      energy: (current + amount).clamp(0, PlayerState.maxEnergy),
+      energySince: anchor,
+      updatedAt: now,
+    );
+  }
+
+  // ---------------------------------------------------------------- Cauris
+
+  /// Prix des indices du rappel « complète le proverbe ».
+  static const hintLetterCost = 2;
+  static const hintWordCost = 5;
+
+  /// Coffre de fin de niveau : 5 cauris par nouvelle étoile, 2 pour un niveau
+  /// rejoué et réussi sans nouvelle étoile.
+  static const chestPerStar = 5;
+  static const chestReplay = 2;
+
+  /// Entraînement terminé : 3 cauris et 1 énergie.
+  static const practiceCauris = 3;
+  static const practiceEnergy = 1;
+
+  /// Dépense des cauris ; null s'il n'y en a pas assez.
+  static PlayerState? spendCauris(PlayerState player, int amount, DateTime now) =>
+      player.cauris < amount ? null : player.copyWith(cauris: player.cauris - amount, updatedAt: now);
+
+  // ---------------------------------------------------------------- Étoiles
+
+  /// 3 étoiles : tout juste ; 2 : au moins 80 % ; 1 : niveau validé.
+  static int stars(int correct, int total, {required bool passed}) {
+    if (!passed || total == 0) return 0;
+    if (correct >= total) return 3;
+    return correct / total >= 0.8 ? 2 : 1;
+  }
+
+  /// Meilleur nombre d'étoiles obtenu sur un niveau.
+  static int levelStars(PlayerState player, String levelId) {
+    final result = player.levels[levelId];
+    return result == null ? 0 : stars(result.bestCorrect, result.total, passed: result.passed);
+  }
+
+  // ---------------------------------------------------------------- Quêtes du jour
+
+  static const questPool = [
+    QuestDef('niveaux', 'Réussis 2 niveaux', 2, 10),
+    QuestDef('sans-faute', 'Fais un sans-faute (3 étoiles)', 1, 15),
+    QuestDef('reponses', 'Donne 10 bonnes réponses', 10, 10),
+    QuestDef('entrainement', 'Termine un entraînement', 1, 10),
+    QuestDef('rappel', 'Complète un proverbe sans indice', 1, 10),
+  ];
+
+  /// Les 3 quêtes d'un jour, toujours les mêmes pour ce jour.
+  static List<QuestDef> questsOfDay(String day) {
+    final seed = day.codeUnits.fold<int>(0, (h, c) => (h * 31 + c) & 0x7fffffff);
+    final pool = [...questPool];
+    return [for (var i = 0; i < 3; i++) pool.removeAt((seed + i * 7) % pool.length)];
+  }
+
+  /// Avance les quêtes du jour ; une quête terminée donne ses cauris tout de
+  /// suite. Renvoie le joueur et les quêtes terminées par cette action.
+  static (PlayerState, List<QuestDef>) progressQuests(PlayerState player, DateTime now, Map<String, int> increments) {
+    final day = dayKey(now);
+    final current = player.quests?.day == day ? player.quests! : QuestProgress(day: day);
+    final progress = {...current.progress};
+    final claimed = {...current.claimed};
+    final done = <QuestDef>[];
+    var cauris = player.cauris;
+    for (final quest in questsOfDay(day)) {
+      final add = increments[quest.id] ?? 0;
+      if (add <= 0) continue;
+      progress[quest.id] = (progress[quest.id] ?? 0) + add;
+      if (progress[quest.id]! >= quest.target && claimed.add(quest.id)) {
+        done.add(quest);
+        cauris += quest.reward;
+      }
+    }
+    return (
+      player.copyWith(quests: QuestProgress(day: day, progress: progress, claimed: claimed), cauris: cauris),
+      done,
+    );
+  }
+
+  // ---------------------------------------------------------------- Entraînement
+
+  /// Fin d'un entraînement : les questions réussies sortent de la liste à
+  /// réviser, les ratées y restent. Pas d'énergie perdue : on en regagne une.
+  static PracticeOutcome completePractice({
+    required PlayerState player,
+    required Set<String> askedIds,
+    required Set<String> correctIds,
+    required DateTime now,
+  }) {
+    var next = player.copyWith(
+      toReview: {...player.toReview.difference(correctIds), ...askedIds.difference(correctIds)},
+      cauris: player.cauris + practiceCauris,
+      updatedAt: now,
+    );
+    final energyBefore = energyAt(next, now);
+    next = touchStreak(gainEnergy(next, now, practiceEnergy), now);
+    final (withQuests, quests) = progressQuests(next, now, {'entrainement': 1, 'reponses': correctIds.length});
+    return PracticeOutcome(
+      player: withQuests,
+      correct: correctIds.length,
+      total: askedIds.length,
+      cauris: practiceCauris,
+      energyGained: energyAt(withQuests, now) - energyBefore,
+      completedQuests: quests,
+    );
+  }
+
   static int xpIntoLevel(int xp) => xp % xpPerPlayerLevel;
 
   static double levelProgress(int xp) => xpIntoLevel(xp) / xpPerPlayerLevel;
@@ -71,21 +187,23 @@ class GameRules {
     return playable.isNotEmpty && playable.every((l) => player.isLevelPassed(l.id));
   }
 
-  /// La première étape est ouverte ; les suivantes s'ouvrent quand toutes
-  /// les étapes précédentes qui ont du contenu sont terminées.
-  static bool isLanguageUnlocked(ContentPack content, PlayerState player, Language language) {
-    for (final previous in content.languages.takeWhile((l) => l.id != language.id)) {
-      if (content.playableLevelsOf(previous.id).isEmpty) continue;
-      if (!isLanguageCompleted(content, player, previous)) return false;
+  /// Langue affichée sur la carte : celle choisie par le joueur, sinon la
+  /// langue qu'il transmet (aîné), sinon la première qui a du contenu.
+  static Language? learningLanguage(ContentPack content, PlayerState player) {
+    for (final id in [player.learningLanguageId, player.spokenLanguageId]) {
+      final language = id == null ? null : content.language(id);
+      if (language != null) return language;
     }
-    return true;
+    for (final language in content.languages) {
+      if (content.playableLevelsOf(language.id).isNotEmpty) return language;
+    }
+    return content.languages.firstOrNull;
   }
 
-  /// Un niveau est ouvert si son étape l'est et si les niveaux jouables qui
-  /// le précèdent sont validés. Les niveaux « en préparation » ne bloquent pas.
+  /// Un niveau est ouvert si les niveaux jouables qui le précèdent dans sa
+  /// langue sont validés. Les niveaux « en préparation » ne bloquent pas.
+  /// Toutes les langues sont ouvertes : le joueur choisit la sienne.
   static bool isLevelUnlocked(ContentPack content, PlayerState player, Level level) {
-    final language = content.language(level.languageId);
-    if (language == null || !isLanguageUnlocked(content, player, language)) return false;
     if (!content.isPlayable(level)) return false;
     return content
         .playableLevelsOf(level.languageId)
@@ -101,15 +219,27 @@ class GameRules {
   static List<Challenge> challengesFor(ContentPack content, PlayerState player) =>
       content.challenges.where((c) => c.isFor(player.role)).toList();
 
-  /// Premier niveau ouvert et pas encore validé, en suivant la carte.
+  /// Premier niveau ouvert et pas encore validé dans la langue du joueur.
   static Level? nextLevel(ContentPack content, PlayerState player) {
-    for (final language in content.languages) {
-      for (final level in content.levelsOf(language.id)) {
-        if (!player.isLevelPassed(level.id) && isLevelUnlocked(content, player, level)) return level;
-      }
+    final language = learningLanguage(content, player);
+    if (language == null) return null;
+    for (final level in content.levelsOf(language.id)) {
+      if (!player.isLevelPassed(level.id) && isLevelUnlocked(content, player, level)) return level;
     }
     return null;
   }
+
+  /// Niveaux validés demandés pour [event] (son propre seuil, sinon le seuil
+  /// général). Dans Supabase, ce seuil s'appelle encore « min_diamonds ».
+  static int eventLevelsRequired(ContentPack content, CultureEvent? event) =>
+      event?.minDiamonds ?? content.settings.eventMinDiamonds;
+
+  /// Le joueur peut participer aux événements culturels : assez de niveaux
+  /// validés et un niveau de joueur suffisant. C'est du mérite : les cauris,
+  /// qui pourront s'acheter, n'y comptent pas.
+  static bool isEventEligible(ContentPack content, PlayerState player, [CultureEvent? event]) =>
+      player.levelsPassed >= eventLevelsRequired(content, event) &&
+      playerLevel(player.xp) >= content.settings.eventMinLevel;
 
   /// Part des éléments (mots, proverbes) maîtrisés dans une langue.
   static double languageMastery(ContentPack content, PlayerState player, Language language) {
@@ -159,6 +289,8 @@ class GameRules {
     required Set<String> correctIds,
     required DateTime now,
     bool outOfEnergy = false,
+    int correctAnswers = 0,
+    int recallsWithoutHint = 0,
   }) {
     final level = content.level(levelId)!;
     final items = content.itemsOf(levelId).where((i) => askedIds.contains(i.id)).toList();
@@ -170,6 +302,13 @@ class GameRules {
     final xpGained = newlyMastered.fold<int>(0, (sum, a) => sum + a.xp);
 
     final previous = player.levels[levelId];
+    final previousStars = levelStars(player, levelId);
+    final runStars = stars(correct, total, passed: passed);
+    final chest = !passed
+        ? 0
+        : runStars > previousStars
+        ? chestPerStar * (runStars - previousStars)
+        : chestReplay;
     final result = LevelResult(
       bestCorrect: previous == null || correct > previous.bestCorrect ? correct : previous.bestCorrect,
       total: total,
@@ -182,9 +321,22 @@ class GameRules {
       xp: player.xp + xpGained,
       levels: {...player.levels, levelId: result},
       masteredActivities: {...player.masteredActivities, ...newlyMastered.map((a) => a.id)},
+      cauris: player.cauris + chest,
+      // Les ratés vont dans l'entraînement ; ce qui est réussi en sort.
+      toReview: {
+        ...player.toReview.difference(correctIds),
+        ...items.where((i) => !correctIds.contains(i.id)).map((i) => i.id),
+      },
       updatedAt: now,
     );
     next = touchStreak(next, now);
+    final List<QuestDef> quests;
+    (next, quests) = progressQuests(next, now, {
+      'niveaux': passed ? 1 : 0,
+      'sans-faute': runStars == 3 ? 1 : 0,
+      'reponses': correctAnswers,
+      'rappel': recallsWithoutHint,
+    });
 
     final unlocked = challengesFor(content, next)
         .where((c) => isChallengeUnlocked(next, c) && !challengesBefore.contains(c.id))
@@ -201,6 +353,10 @@ class GameRules {
       passed: passed,
       xpGained: xpGained,
       leveledUp: playerLevel(next.xp) > playerLevel(player.xp),
+      stars: runStars,
+      previousStars: previousStars,
+      chestCauris: chest,
+      completedQuests: quests,
       newBadges: newBadges,
       unlockedChallenges: unlocked,
       outOfEnergy: outOfEnergy,
@@ -295,6 +451,10 @@ class LevelOutcome {
     required this.newBadges,
     required this.unlockedChallenges,
     this.outOfEnergy = false,
+    this.stars = 0,
+    this.previousStars = 0,
+    this.chestCauris = 0,
+    this.completedQuests = const [],
   });
 
   final PlayerState player;
@@ -307,6 +467,47 @@ class LevelOutcome {
   final List<BadgeDef> newBadges;
   final List<Challenge> unlockedChallenges;
   final bool outOfEnergy;
+
+  /// Étoiles de cette partie (0 si le niveau n'est pas validé) et meilleur
+  /// score d'avant.
+  final int stars;
+  final int previousStars;
+
+  /// Cauris du coffre de fin de niveau.
+  final int chestCauris;
+
+  /// Quêtes du jour terminées pendant cette partie (leurs cauris sont déjà
+  /// ajoutés au joueur).
+  final List<QuestDef> completedQuests;
+}
+
+class QuestDef {
+  const QuestDef(this.id, this.title, this.target, this.reward);
+
+  final String id;
+  final String title;
+  final int target;
+
+  /// Cauris gagnés en la terminant.
+  final int reward;
+}
+
+class PracticeOutcome {
+  const PracticeOutcome({
+    required this.player,
+    required this.correct,
+    required this.total,
+    required this.cauris,
+    required this.energyGained,
+    required this.completedQuests,
+  });
+
+  final PlayerState player;
+  final int correct;
+  final int total;
+  final int cauris;
+  final int energyGained;
+  final List<QuestDef> completedQuests;
 }
 
 class ChallengeOutcome {

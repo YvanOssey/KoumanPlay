@@ -6,11 +6,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/game_rules.dart';
 import '../../core/theme.dart';
+import '../../models/avatar.dart';
 import '../../models/content.dart';
 import '../../models/player.dart';
 import '../../services/providers.dart';
+import '../../widgets/avatar_view.dart';
 import '../../widgets/common.dart';
+import '../../widgets/cauris.dart';
 import '../../widgets/energy.dart';
+import '../../widgets/language_option.dart';
 
 // Géométrie de la carte : chaque langue est une « zone » ; ses niveaux
 // montent en zigzag du bas (niveau 1) vers le haut, au-dessus de son bandeau.
@@ -18,8 +22,6 @@ const _nodeSpacing = 118.0;
 const _zoneTopPadding = 70.0;
 const _bannerHeight = 176.0;
 const _firstNodeFromBottom = _bannerHeight + 90.0;
-
-double _zoneHeight(int levelCount) => levelCount * _nodeSpacing + _zoneTopPadding + _bannerHeight;
 
 enum NodeState { done, current, open, locked, preparing }
 
@@ -31,7 +33,10 @@ NodeState nodeStateOf(ContentPack content, PlayerState player, Level level, Leve
 }
 
 class MapScreen extends ConsumerStatefulWidget {
-  const MapScreen({super.key});
+  const MapScreen({super.key, this.showBack = false});
+
+  /// Ouverte hors des onglets (espace aîné) : bouton retour.
+  final bool showBack;
 
   @override
   ConsumerState<MapScreen> createState() => _MapScreenState();
@@ -61,17 +66,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final content = ref.read(contentProvider);
     final current = GameRules.nextLevel(content, ref.read(playerProvider));
     if (current == null) return;
-    var offset = 0.0;
-    for (final language in content.languages) {
-      final levels = content.levelsOf(language.id);
-      if (language.id == current.languageId) {
-        offset += _firstNodeFromBottom + levels.indexWhere((l) => l.id == current.id) * _nodeSpacing;
-        break;
-      }
-      offset += _zoneHeight(levels.length);
-    }
+    final levels = content.levelsOf(current.languageId);
+    final offset = _firstNodeFromBottom + levels.indexWhere((l) => l.id == current.id) * _nodeSpacing;
     final target = (offset - _scroll.position.viewportDimension * 0.35).clamp(0.0, _scroll.position.maxScrollExtent);
     _scroll.animateTo(target, duration: const Duration(milliseconds: 900), curve: Curves.easeOutCubic);
+  }
+
+  Future<void> _chooseLanguage() async {
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const LanguagePickerSheet(),
+    );
+    if (chosen == null) return;
+    await ref.read(playerProvider.notifier).setLearningLanguage(chosen);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrent());
   }
 
   @override
@@ -79,6 +89,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final content = ref.watch(contentProvider);
     final player = ref.watch(playerProvider);
     final current = GameRules.nextLevel(content, player);
+    final language = GameRules.learningLanguage(content, player);
+    if (language == null) return const SizedBox.shrink();
 
     return Stack(
       children: [
@@ -93,11 +105,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           reverse: true,
           slivers: [
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            SliverList.builder(
-              itemCount: content.languages.length,
-              itemBuilder: (context, i) => _LanguageZone(
-                language: content.languages[i],
-                stepNumber: i + 1,
+            SliverToBoxAdapter(
+              child: _LanguageZone(
+                language: language,
+                stepNumber: content.languages.indexOf(language) + 1,
                 content: content,
                 player: player,
                 current: current,
@@ -110,17 +121,63 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           top: 0,
           left: 0,
           right: 0,
-          child: _MapHeader(xp: player.xp),
+          child: _MapHeader(
+            language: language,
+            cauris: player.cauris,
+            onBack: widget.showBack ? () => context.pop() : null,
+            onChangeLanguage: _chooseLanguage,
+          ),
         ),
       ],
     );
   }
 }
 
-class _MapHeader extends StatelessWidget {
-  const _MapHeader({required this.xp});
+/// Choix de la langue de la carte ; renvoie l'id choisi.
+class LanguagePickerSheet extends ConsumerWidget {
+  const LanguagePickerSheet({super.key});
 
-  final int xp;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final content = ref.watch(contentProvider);
+    final current = GameRules.learningLanguage(content, ref.watch(playerProvider));
+    return Container(
+      margin: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.screen),
+      decoration: BoxDecoration(color: AppColors.cream, borderRadius: BorderRadius.circular(AppRadius.largeCard)),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Quelle langue veux-tu apprendre ?', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 4),
+            const Text('Ta progression dans chaque langue est gardée.', style: TextStyle(color: AppColors.gray500)),
+            const SizedBox(height: 14),
+            for (final l in content.languages) ...[
+              LanguageOption(
+                language: l,
+                ready: content.playableLevelsOf(l.id).isNotEmpty,
+                selected: l.id == current?.id,
+                onTap: () => Navigator.pop(context, l.id),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MapHeader extends StatelessWidget {
+  const _MapHeader({required this.language, required this.cauris, required this.onChangeLanguage, this.onBack});
+
+  final Language language;
+  final int cauris;
+  final VoidCallback onChangeLanguage;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -136,13 +193,49 @@ class _MapHeader extends StatelessWidget {
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 12, AppSpacing.screen, 24),
-          child: Row(
-            children: [
-              Expanded(child: Text('Carte des langues', style: Theme.of(context).textTheme.titleLarge)),
-              const EnergyPill(),
-              const SizedBox(width: 8),
-              StatPill(icon: Icons.star_rounded, label: '$xp XP', color: AppColors.green500),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) => Row(
+              children: [
+                if (onBack != null) ...[
+                  IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: onBack),
+                  const SizedBox(width: 4),
+                ],
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Material(
+                      color: AppColors.white.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(999),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(999),
+                        onTap: onChangeLanguage,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  language.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Color(language.color)),
+                                ),
+                              ),
+                              Icon(Icons.expand_more_rounded, color: Color(language.color)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Le nom de la langue passe avant le temps d'attente sur les petits écrans.
+                EnergyPill(showWait: constraints.maxWidth >= 340),
+                const SizedBox(width: 8),
+                CauriPill(cauris: cauris),
+              ],
+            ),
           ),
         ),
       ),
@@ -192,7 +285,9 @@ class _LanguageZone extends StatelessWidget {
                 clipBehavior: Clip.none,
                 children: [
                   Positioned.fill(
-                    child: CustomPaint(painter: _RoadPainter(centers: centers, states: states, color: color)),
+                    child: CustomPaint(
+                      painter: _RoadPainter(centers: centers, states: states, color: color),
+                    ),
                   ),
                   for (var i = 0; i < levels.length; i++)
                     Positioned(
@@ -204,7 +299,7 @@ class _LanguageZone extends StatelessWidget {
                         state: states[i],
                         color: color,
                         index: i,
-                        avatar: player.isSenior ? '👴🏾' : '🧑🏾',
+                        avatar: player.avatarOrDefault,
                         result: player.levels[levels[i].id],
                         itemCount: content.itemsOf(levels[i].id).length,
                         languageName: language.name,
@@ -238,13 +333,10 @@ class _ZoneBanner extends StatelessWidget {
     final color = Color(language.color);
     final playable = content.playableLevelsOf(language.id);
     final passed = playable.where((l) => player.isLevelPassed(l.id)).length;
-    final unlocked = GameRules.isLanguageUnlocked(content, player, language);
-    final previous = stepNumber > 1 ? content.languages[stepNumber - 2].name : null;
+    final unlocked = playable.isNotEmpty;
     final status = playable.isEmpty
         ? 'Bientôt · contenu en collecte avec les aînés'
-        : !unlocked
-            ? 'Termine l\'étape ${previous ?? ''} pour débloquer'
-            : '$passed / ${playable.length} niveaux validés';
+        : '$passed / ${playable.length} niveaux validés';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 8, AppSpacing.screen, 24),
@@ -276,7 +368,7 @@ class _ZoneBanner extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'ÉTAPE $stepNumber · ${language.group.toUpperCase()}',
+                      'MA LANGUE · ${language.group.toUpperCase()}',
                       style: TextStyle(
                         color: AppColors.white.withValues(alpha: 0.85),
                         fontSize: 12,
@@ -286,11 +378,22 @@ class _ZoneBanner extends StatelessWidget {
                     ),
                     Text(
                       language.name,
-                      style: const TextStyle(color: AppColors.white, fontSize: 26, fontWeight: FontWeight.w700, height: 1.2),
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
                     ),
-                    Text(language.region, style: TextStyle(color: AppColors.white.withValues(alpha: 0.85), fontSize: 12)),
+                    Text(
+                      language.region,
+                      style: TextStyle(color: AppColors.white.withValues(alpha: 0.85), fontSize: 12),
+                    ),
                     const SizedBox(height: 8),
-                    Text(status, style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                    Text(
+                      status,
+                      style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
                   ],
                 ),
               ),
@@ -325,7 +428,7 @@ class _LevelNode extends StatefulWidget {
   final NodeState state;
   final Color color;
   final int index;
-  final String avatar;
+  final AvatarConfig avatar;
   final LevelResult? result;
   final int itemCount;
   final String languageName;
@@ -335,7 +438,10 @@ class _LevelNode extends StatefulWidget {
 }
 
 class _LevelNodeState extends State<_LevelNode> with SingleTickerProviderStateMixin {
-  late final AnimationController _float = AnimationController(vsync: this, duration: const Duration(milliseconds: 1300));
+  late final AnimationController _float = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1300),
+  );
   bool _pressed = false;
 
   static const _size = 72.0;
@@ -374,10 +480,14 @@ class _LevelNodeState extends State<_LevelNode> with SingleTickerProviderStateMi
       case NodeState.preparing:
         messenger
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(
-            content: Text('Niveau en préparation : les ${widget.level.kindLabel.toLowerCase()} en ${widget.languageName} '
-                'sont en cours de collecte avec les aînés.'),
-          ));
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                'Niveau en préparation : les ${widget.level.kindLabel.toLowerCase()} en ${widget.languageName} '
+                'sont en cours de collecte avec les aînés.',
+              ),
+            ),
+          );
       case NodeState.done || NodeState.current || NodeState.open:
         showModalBottomSheet<void>(
           context: context,
@@ -406,10 +516,11 @@ class _LevelNodeState extends State<_LevelNode> with SingleTickerProviderStateMi
     final icon = switch (state) {
       NodeState.done => Icons.check_rounded,
       NodeState.current || NodeState.open => switch (widget.level.kind) {
-          LevelKind.mots => Icons.translate_rounded,
-          LevelKind.phrases => Icons.chat_bubble_rounded,
-          LevelKind.proverbes => Icons.auto_stories_rounded,
-        },
+        LevelKind.mots => Icons.translate_rounded,
+        LevelKind.phrases => Icons.chat_bubble_rounded,
+        LevelKind.proverbes => Icons.auto_stories_rounded,
+        LevelKind.tresors => Icons.museum_rounded,
+      },
       NodeState.locked => Icons.lock_rounded,
       NodeState.preparing => Icons.hourglass_empty_rounded,
     };
@@ -464,7 +575,10 @@ class _LevelNodeState extends State<_LevelNode> with SingleTickerProviderStateMi
                         ),
                       ),
                       if (state == NodeState.current)
-                        Positioned(top: 2 - lift, child: _PulseRing(color: widget.color, size: _size)),
+                        Positioned(
+                          top: 2 - lift,
+                          child: _PulseRing(color: widget.color, size: _size),
+                        ),
                       // Tranche du bouton.
                       Positioned(
                         top: _depth - lift,
@@ -487,7 +601,11 @@ class _LevelNodeState extends State<_LevelNode> with SingleTickerProviderStateMi
                         ),
                       ),
                       if (state == NodeState.current)
-                        Positioned(top: 16 - lift, right: -30, child: _AvatarBubble(emoji: widget.avatar, color: widget.color)),
+                        Positioned(
+                          top: 16 - lift,
+                          right: -30,
+                          child: _AvatarBubble(avatar: widget.avatar, color: widget.color),
+                        ),
                     ],
                   ),
                 );
@@ -501,11 +619,25 @@ class _LevelNodeState extends State<_LevelNode> with SingleTickerProviderStateMi
               color: active ? AppColors.black.withValues(alpha: 0.85) : AppColors.gray500.withValues(alpha: 0.75),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              'Niv. ${widget.level.order} · ${widget.level.title}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.w600),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.result?.passed ?? false) ...[
+                  StarRow(
+                    stars: GameRules.stars(widget.result!.bestCorrect, widget.result!.total, passed: true),
+                    size: 12,
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Flexible(
+                  child: Text(
+                    'Niv. ${widget.level.order} · ${widget.level.title}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -589,9 +721,9 @@ class _PulseRingState extends State<_PulseRing> with SingleTickerProviderStateMi
 }
 
 class _AvatarBubble extends StatelessWidget {
-  const _AvatarBubble({required this.emoji, required this.color});
+  const _AvatarBubble({required this.avatar, required this.color});
 
-  final String emoji;
+  final AvatarConfig avatar;
   final Color color;
 
   @override
@@ -606,7 +738,7 @@ class _AvatarBubble extends StatelessWidget {
         border: Border.all(color: color, width: 3),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 3))],
       ),
-      child: Text(emoji, style: const TextStyle(fontSize: 24)),
+      child: AvatarView(config: avatar, size: 38),
     );
   }
 }
@@ -629,7 +761,11 @@ class _LevelSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final count = level.kind == LevelKind.proverbes ? '$itemCount proverbes' : '$itemCount ${level.kindLabel.toLowerCase()} à apprendre';
+    final count = switch (level.kind) {
+      LevelKind.proverbes => '$itemCount proverbes',
+      LevelKind.tresors => '$itemCount questions sur les trésors du patrimoine',
+      _ => '$itemCount ${level.kindLabel.toLowerCase()} à apprendre',
+    };
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(AppSpacing.screen),
@@ -647,7 +783,10 @@ class _LevelSheet extends StatelessWidget {
             Text(count, style: const TextStyle(color: AppColors.gray500)),
             if (result != null) ...[
               const SizedBox(height: 4),
-              Text('Meilleur score : ${result!.bestCorrect}/${result!.total}', style: const TextStyle(color: AppColors.gray500)),
+              Text(
+                'Meilleur score : ${result!.bestCorrect}/${result!.total}',
+                style: const TextStyle(color: AppColors.gray500),
+              ),
             ],
             const SizedBox(height: AppSpacing.section),
             EnergyBuilder(
@@ -659,11 +798,13 @@ class _LevelSheet extends StatelessWidget {
                         Navigator.pop(context);
                         context.push('/quiz/${level.id}');
                       },
-                child: Text(energy == 0
-                    ? 'Plus d\'énergie · ${formatWait(nextIn ?? GameRules.energyRefill)}'
-                    : result?.passed ?? false
-                        ? 'Rejouer'
-                        : 'Jouer'),
+                child: Text(
+                  energy == 0
+                      ? 'Plus d\'énergie · ${formatWait(nextIn ?? GameRules.energyRefill)}'
+                      : result?.passed ?? false
+                      ? 'Rejouer'
+                      : 'Jouer',
+                ),
               ),
             ),
           ],
@@ -730,7 +871,8 @@ class _RoadPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RoadPainter old) => old.centers != centers || old.states != states || old.color != color;
+  bool shouldRepaint(covariant _RoadPainter old) =>
+      old.centers != centers || old.states != states || old.color != color;
 }
 
 /// Décor en couches qui défilent à des vitesses différentes (profondeur).
@@ -758,8 +900,15 @@ class _ParallaxBackground extends CustomPainter {
 
   /// Rangée de collines/buissons qui se répète verticalement. La liste
   /// défile du bas vers le haut, d'où le signe.
-  void _layer(Canvas canvas, Size size,
-      {required double speed, required double spacing, required double radius, required Color color, required int seed}) {
+  void _layer(
+    Canvas canvas,
+    Size size, {
+    required double speed,
+    required double spacing,
+    required double radius,
+    required Color color,
+    required int seed,
+  }) {
     final paint = Paint()..color = color;
     final travel = offset * speed;
     final shift = travel % spacing;

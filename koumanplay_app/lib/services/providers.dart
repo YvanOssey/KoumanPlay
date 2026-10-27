@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/game_rules.dart';
+import '../models/avatar.dart';
 import '../models/content.dart';
 import '../models/player.dart';
 import 'backend.dart';
@@ -152,21 +153,55 @@ class PlayerController extends Notifier<PlayerState> {
     required String firstName,
     required String role,
     String? spokenLanguageId,
+    String? learningLanguageId,
     String? village,
   }) async {
     await _save(state.copyWith(
       firstName: firstName.trim(),
       role: role,
       spokenLanguageId: spokenLanguageId,
+      learningLanguageId: learningLanguageId,
       village: village?.trim().isEmpty ?? true ? null : village!.trim(),
       onboarded: true,
       updatedAt: DateTime.now(),
     ));
-    _analytics.track('onboarding_completed', {'role': role, 'language': ?spokenLanguageId});
+    _analytics.track('onboarding_completed', {
+      'role': role,
+      'language': ?spokenLanguageId,
+      'learning': ?learningLanguageId,
+    });
   }
 
   Future<void> setSpokenLanguage(String languageId) async {
     await _save(state.copyWith(spokenLanguageId: languageId, updatedAt: DateTime.now()));
+  }
+
+  /// Change la langue de la carte ; la progression de chaque langue est gardée.
+  Future<void> setLearningLanguage(String languageId) async {
+    if (languageId == state.learningLanguageId) return;
+    await _save(state.copyWith(learningLanguageId: languageId, updatedAt: DateTime.now()));
+    _analytics.track('language_changed', {'language': languageId});
+  }
+
+  /// Paie un indice en cauris ; false s'il n'y en a pas assez.
+  Future<bool> spendCauris(int amount, {required String reason}) async {
+    final next = GameRules.spendCauris(state, amount, DateTime.now());
+    if (next == null) return false;
+    await _save(next);
+    _analytics.track('cauris_spent', {'amount': amount, 'reason': reason});
+    return true;
+  }
+
+  Future<PracticeOutcome> completePractice({required Set<String> askedIds, required Set<String> correctIds}) async {
+    final outcome = GameRules.completePractice(player: state, askedIds: askedIds, correctIds: correctIds, now: DateTime.now());
+    await _save(outcome.player);
+    _analytics.track('practice_completed', {'correct': outcome.correct, 'total': outcome.total});
+    return outcome;
+  }
+
+  Future<void> setAvatar(AvatarConfig avatar) async {
+    await _save(state.copyWith(avatar: avatar, updatedAt: DateTime.now()));
+    _analytics.track('avatar_updated', {'hair': avatar.hair, 'outfit': avatar.outfit});
   }
 
   /// Accord de l'aîné pour l'utilisation de sa voix, donné une seule fois.
@@ -198,6 +233,8 @@ class PlayerController extends Notifier<PlayerState> {
     required Set<String> askedIds,
     required Set<String> correctIds,
     bool outOfEnergy = false,
+    int correctAnswers = 0,
+    int recallsWithoutHint = 0,
   }) async {
     final outcome = GameRules.completeLevel(
       content: _content,
@@ -207,6 +244,8 @@ class PlayerController extends Notifier<PlayerState> {
       correctIds: correctIds,
       now: DateTime.now(),
       outOfEnergy: outOfEnergy,
+      correctAnswers: correctAnswers,
+      recallsWithoutHint: recallsWithoutHint,
     );
     await _save(outcome.player);
     _analytics.track('level_completed', {

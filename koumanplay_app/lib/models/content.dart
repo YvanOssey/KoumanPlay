@@ -29,7 +29,8 @@ class Language {
       );
 }
 
-enum LevelKind { mots, phrases, proverbes }
+/// `tresors` : questions sur les œuvres de la Bibliothèque.
+enum LevelKind { mots, phrases, proverbes, tresors }
 
 class Level {
   const Level({
@@ -52,7 +53,12 @@ class Level {
         LevelKind.mots => 'Mots',
         LevelKind.phrases => 'Phrases',
         LevelKind.proverbes => 'Proverbes',
+        LevelKind.tresors => 'Trésors',
       };
+
+  /// Proverbes et trésors : questions écrites à la main (activities) ;
+  /// mots et phrases : questions générées à partir des mots collectés.
+  bool get hasActivities => kind == LevelKind.proverbes || kind == LevelKind.tresors;
 
   factory Level.fromJson(Map<String, dynamic> json) => Level(
         id: json['id'] as String,
@@ -203,6 +209,124 @@ class Challenge {
       );
 }
 
+/// Œuvre de la bibliothèque culturelle (masque, statue, pagne, instrument…),
+/// fournie par une structure partenaire.
+class CulturalWork {
+  const CulturalWork({
+    required this.id,
+    required this.title,
+    required this.kind,
+    required this.description,
+    this.people,
+    this.region,
+    this.period,
+    this.museum,
+    this.city,
+    this.address,
+    this.imageUrl,
+    this.link,
+  });
+
+  final String id;
+  final String title;
+
+  /// Type d'œuvre : « Masque », « Statue », « Textile »…
+  final String kind;
+  final String description;
+
+  /// Peuple ou groupe culturel d'origine.
+  final String? people;
+  final String? region;
+  final String? period;
+
+  /// Où la voir.
+  final String? museum;
+  final String? city;
+  final String? address;
+  final String? imageUrl;
+  final String? link;
+
+  /// Texte sur lequel porte la recherche.
+  String get searchText => [title, kind, people, region, museum, city].whereType<String>().join(' ').toLowerCase();
+
+  factory CulturalWork.fromJson(Map<String, dynamic> json) => CulturalWork(
+        id: json['id'] as String,
+        title: json['title'] as String,
+        kind: json['kind'] as String? ?? 'Œuvre',
+        description: json['description'] as String? ?? '',
+        people: json['people'] as String?,
+        region: json['region'] as String?,
+        period: json['period'] as String?,
+        museum: json['museum'] as String?,
+        city: json['city'] as String?,
+        address: json['address'] as String?,
+        imageUrl: json['imageUrl'] as String?,
+        link: json['link'] as String?,
+      );
+}
+
+/// Événement culturel publié par une structure partenaire.
+class CultureEvent {
+  const CultureEvent({
+    required this.id,
+    required this.title,
+    required this.organizer,
+    required this.description,
+    required this.startsAt,
+    this.endsAt,
+    this.place,
+    this.city,
+    this.imageUrl,
+    this.link,
+    this.minDiamonds,
+  });
+
+  final String id;
+  final String title;
+  final String organizer;
+  final String description;
+  final DateTime startsAt;
+  final DateTime? endsAt;
+  final String? place;
+  final String? city;
+  final String? imageUrl;
+  final String? link;
+
+  /// Diamants demandés pour cet événement ; sinon le seuil général.
+  final int? minDiamonds;
+
+  /// Terminé depuis plus d'un jour.
+  bool isPast(DateTime now) => (endsAt ?? startsAt).isBefore(now.subtract(const Duration(days: 1)));
+
+  factory CultureEvent.fromJson(Map<String, dynamic> json) => CultureEvent(
+        id: json['id'] as String,
+        title: json['title'] as String,
+        organizer: json['organizer'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        startsAt: DateTime.parse(json['startsAt'] as String).toLocal(),
+        endsAt: DateTime.tryParse(json['endsAt'] as String? ?? '')?.toLocal(),
+        place: json['place'] as String?,
+        city: json['city'] as String?,
+        imageUrl: json['imageUrl'] as String?,
+        link: json['link'] as String?,
+        minDiamonds: json['minDiamonds'] as int?,
+      );
+}
+
+/// Réglages modifiables depuis Supabase, sans nouvelle version de l'app.
+class AppSettings {
+  const AppSettings({this.eventMinDiamonds = 3, this.eventMinLevel = 2});
+
+  /// Seuils pour pouvoir participer à un événement culturel.
+  final int eventMinDiamonds;
+  final int eventMinLevel;
+
+  factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
+        eventMinDiamonds: json['eventMinDiamonds'] as int? ?? 3,
+        eventMinLevel: json['eventMinLevel'] as int? ?? 2,
+      );
+}
+
 class ContentPack {
   ContentPack({
     required this.version,
@@ -211,6 +335,9 @@ class ContentPack {
     required this.words,
     required this.activities,
     required this.challenges,
+    this.works = const [],
+    this.events = const [],
+    this.settings = const AppSettings(),
   });
 
   /// Nombre minimum de mots pour générer des questions à 4 choix.
@@ -222,6 +349,11 @@ class ContentPack {
   final List<Word> words;
   final List<Activity> activities;
   final List<Challenge> challenges;
+  final List<CulturalWork> works;
+
+  /// Triés par date de début.
+  final List<CultureEvent> events;
+  final AppSettings settings;
 
   factory ContentPack.fromJson(Map<String, dynamic> json) {
     List<T> list<T>(String key, T Function(Map<String, dynamic>) parse) =>
@@ -233,6 +365,9 @@ class ContentPack {
       words: list('words', Word.fromJson),
       activities: list('activities', Activity.fromJson),
       challenges: list('challenges', Challenge.fromJson),
+      works: list('works', CulturalWork.fromJson),
+      events: list('events', CultureEvent.fromJson)..sort((a, b) => a.startsAt.compareTo(b.startsAt)),
+      settings: AppSettings.fromJson((json['settings'] as Map?)?.cast<String, dynamic>() ?? const {}),
     );
   }
 
@@ -245,11 +380,11 @@ class ContentPack {
   List<LessonItem> itemsOf(String levelId) {
     final level = this.level(levelId);
     if (level == null) return const [];
-    return level.kind == LevelKind.proverbes ? activitiesOf(levelId) : wordsOf(levelId);
+    return level.hasActivities ? activitiesOf(levelId) : wordsOf(levelId);
   }
 
   /// Un niveau sans contenu suffisant est affiché « en préparation ».
-  bool isPlayable(Level level) => level.kind == LevelKind.proverbes
+  bool isPlayable(Level level) => level.hasActivities
       ? activitiesOf(level.id).isNotEmpty
       : wordsOf(level.id).length >= minWordsPerLevel;
 
@@ -260,6 +395,10 @@ class ContentPack {
   Language? language(String id) => _firstWhereOrNull(languages, (l) => l.id == id);
 
   Challenge? challenge(String id) => _firstWhereOrNull(challenges, (c) => c.id == id);
+
+  CulturalWork? work(String id) => _firstWhereOrNull(works, (w) => w.id == id);
+
+  CultureEvent? event(String id) => _firstWhereOrNull(events, (e) => e.id == id);
 }
 
 T? _firstWhereOrNull<T>(Iterable<T> items, bool Function(T) test) {

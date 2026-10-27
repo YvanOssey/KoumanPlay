@@ -74,7 +74,57 @@ class Backend {
         client.from('challenges').select().eq('published', true).order('sort', ascending: true),
       ]).timeout(_timeout);
       if (results[0].isEmpty || results[1].isEmpty) return null;
+      // Bibliothèque, événements et réglages : chargés à part, pour que le
+      // jeu marche même si ces tables (migration 0004) n'existent pas encore.
+      Future<List<Map<String, dynamic>>> optional(Future<List<Map<String, dynamic>>> query) async {
+        try {
+          return await query.timeout(_timeout);
+        } catch (e) {
+          debugPrint('Table facultative indisponible : $e');
+          return const [];
+        }
+      }
+
+      final extras = await Future.wait([
+        optional(client.from('works').select().eq('published', true).order('sort', ascending: true)),
+        optional(client.from('culture_events').select().eq('published', true).order('starts_at', ascending: true)),
+        optional(client.from('app_settings').select()),
+      ]);
       return {
+        'works': [
+          for (final w in extras[0])
+            {
+              'id': w['id'],
+              'title': w['title'],
+              'kind': w['kind'],
+              'description': w['description'],
+              'people': w['people'],
+              'region': w['region'],
+              'period': w['period'],
+              'museum': w['museum'],
+              'city': w['city'],
+              'address': w['address'],
+              'imageUrl': w['image_url'],
+              'link': w['link'],
+            },
+        ],
+        'events': [
+          for (final e in extras[1])
+            {
+              'id': e['id'],
+              'title': e['title'],
+              'organizer': e['organizer'],
+              'description': e['description'],
+              'startsAt': e['starts_at'],
+              'endsAt': e['ends_at'],
+              'place': e['place'],
+              'city': e['city'],
+              'imageUrl': e['image_url'],
+              'link': e['link'],
+              'minDiamonds': e['min_diamonds'],
+            },
+        ],
+        'settings': {for (final s in extras[2]) s['key']: s['value']},
         'version': 0,
         'languages': results[0],
         'levels': [

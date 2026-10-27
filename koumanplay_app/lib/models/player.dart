@@ -2,6 +2,8 @@
 /// Supabase quand une connexion est disponible.
 library;
 
+import 'avatar.dart';
+
 enum ChallengeStatus { inProgress, done }
 
 class ChallengeProgress {
@@ -71,6 +73,24 @@ class LevelResult {
       );
 }
 
+/// Quêtes du jour : avancement de chaque quête et celles déjà récompensées.
+class QuestProgress {
+  const QuestProgress({required this.day, this.progress = const {}, this.claimed = const {}});
+
+  /// Jour (AAAA-MM-JJ) des quêtes : elles changent chaque jour.
+  final String day;
+  final Map<String, int> progress;
+  final Set<String> claimed;
+
+  Map<String, dynamic> toJson() => {'day': day, 'progress': progress, 'claimed': claimed.toList()};
+
+  factory QuestProgress.fromJson(Map<String, dynamic> json) => QuestProgress(
+    day: json['day'] as String? ?? '',
+    progress: ((json['progress'] as Map?) ?? const {}).cast<String, int>(),
+    claimed: ((json['claimed'] as List?) ?? const []).cast<String>().toSet(),
+  );
+}
+
 class PlayerState {
   const PlayerState({
     required this.firstName,
@@ -86,16 +106,24 @@ class PlayerState {
     required this.updatedAt,
     this.lastActiveDay,
     this.spokenLanguageId,
+    this.learningLanguageId,
     this.village,
     this.consentAt,
     this.creditName = true,
     this.transmitted = const {},
     this.energy = maxEnergy,
     this.energySince,
+    this.avatar,
+    this.cauris = welcomeCauris,
+    this.quests,
+    this.toReview = const {},
   });
 
   /// Énergie maximale ; une mauvaise réponse en coûte une.
   static const maxEnergy = 5;
+
+  /// Cauris offerts au départ, pour pouvoir essayer les indices.
+  static const welcomeCauris = 10;
 
   factory PlayerState.initial() => PlayerState(
         firstName: '',
@@ -134,6 +162,9 @@ class PlayerState {
   final String? spokenLanguageId;
   final String? village;
 
+  /// Langue que le joueur a choisi d'apprendre : sa carte n'affiche qu'elle.
+  final String? learningLanguageId;
+
   /// Aîné : date de l'accord pour l'utilisation de sa voix (null = pas encore).
   final DateTime? consentAt;
 
@@ -148,11 +179,28 @@ class PlayerState {
   final int energy;
   final DateTime? energySince;
 
+  /// Avatar personnalisé ; null = avatar de départ selon le profil.
+  final AvatarConfig? avatar;
+
+  /// Cauris : gagnés en jouant (coffres, quêtes), dépensés en indices.
+  final int cauris;
+
+  /// Quêtes du jour ; null = pas encore commencées.
+  final QuestProgress? quests;
+
+  /// Questions ratées, à revoir en mode Entraînement.
+  final Set<String> toReview;
+
+  AvatarConfig get avatarOrDefault => avatar ?? (isSenior ? AvatarConfig.elderDefault : AvatarConfig.youngDefault);
+
   int get transmittedTotal => transmitted.values.fold(0, (a, b) => a + b);
 
   bool get isSenior => role == 'senior';
 
   bool isLevelPassed(String levelId) => levels[levelId]?.passed ?? false;
+
+  /// Niveaux validés : ils ouvrent l'accès aux événements culturels.
+  int get levelsPassed => levels.values.where((l) => l.passed).length;
 
   PlayerState copyWith({
     String? firstName,
@@ -168,12 +216,17 @@ class PlayerState {
     String? lastActiveDay,
     DateTime? updatedAt,
     String? spokenLanguageId,
+    String? learningLanguageId,
     String? village,
     DateTime? consentAt,
     bool? creditName,
     Map<String, int>? transmitted,
     int? energy,
     DateTime? energySince,
+    AvatarConfig? avatar,
+    int? cauris,
+    QuestProgress? quests,
+    Set<String>? toReview,
   }) =>
       PlayerState(
         firstName: firstName ?? this.firstName,
@@ -189,12 +242,17 @@ class PlayerState {
         lastActiveDay: lastActiveDay ?? this.lastActiveDay,
         updatedAt: updatedAt ?? this.updatedAt,
         spokenLanguageId: spokenLanguageId ?? this.spokenLanguageId,
+        learningLanguageId: learningLanguageId ?? this.learningLanguageId,
         village: village ?? this.village,
         consentAt: consentAt ?? this.consentAt,
         creditName: creditName ?? this.creditName,
         transmitted: transmitted ?? this.transmitted,
         energy: energy ?? this.energy,
         energySince: energySince ?? this.energySince,
+        avatar: avatar ?? this.avatar,
+        cauris: cauris ?? this.cauris,
+        quests: quests ?? this.quests,
+        toReview: toReview ?? this.toReview,
       );
 
   Map<String, dynamic> toJson() => {
@@ -211,12 +269,17 @@ class PlayerState {
         'lastActiveDay': lastActiveDay,
         'updatedAt': updatedAt.toUtc().toIso8601String(),
         'spokenLanguageId': spokenLanguageId,
+        'learningLanguageId': learningLanguageId,
         'village': village,
         'consentAt': consentAt?.toUtc().toIso8601String(),
         'creditName': creditName,
         'transmitted': transmitted,
         'energy': energy,
         'energySince': energySince?.toUtc().toIso8601String(),
+        'avatar': avatar?.toJson(),
+        'cauris': cauris,
+        'quests': quests?.toJson(),
+        'toReview': toReview.toList(),
       };
 
   factory PlayerState.fromJson(Map<String, dynamic> json) => PlayerState(
@@ -237,11 +300,18 @@ class PlayerState {
         lastActiveDay: json['lastActiveDay'] as String?,
         updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
         spokenLanguageId: json['spokenLanguageId'] as String?,
+        learningLanguageId: json['learningLanguageId'] as String?,
         village: json['village'] as String?,
         consentAt: DateTime.tryParse(json['consentAt'] as String? ?? ''),
         creditName: json['creditName'] as bool? ?? true,
         transmitted: ((json['transmitted'] as Map?) ?? const {}).cast<String, int>(),
         energy: json['energy'] as int? ?? maxEnergy,
         energySince: DateTime.tryParse(json['energySince'] as String? ?? ''),
+        avatar: json['avatar'] is Map ? AvatarConfig.fromJson((json['avatar'] as Map).cast<String, dynamic>()) : null,
+        // Anciens profils (avec diamants) : 5 cauris par niveau déjà validé.
+        cauris: json['cauris'] as int? ??
+            welcomeCauris + 5 * ((json['levels'] as Map?) ?? const {}).values.where((v) => (v as Map)['passed'] == true).length,
+        quests: json['quests'] is Map ? QuestProgress.fromJson((json['quests'] as Map).cast<String, dynamic>()) : null,
+        toReview: ((json['toReview'] as List?) ?? const []).cast<String>().toSet(),
       );
 }

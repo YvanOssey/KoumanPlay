@@ -6,6 +6,7 @@ import '../../core/game_rules.dart';
 import '../../core/theme.dart';
 import '../../services/providers.dart';
 import '../../widgets/common.dart';
+import '../../widgets/cauris.dart';
 import '../../widgets/energy.dart';
 
 class ResultScreen extends ConsumerWidget {
@@ -23,8 +24,8 @@ class ResultScreen extends ConsumerWidget {
     final (emoji, title) = !outcome.passed
         ? ('🌱', 'Presque !')
         : ratio == 1
-            ? ('🏆', 'Sans-faute !')
-            : ('🌿', 'Niveau validé !');
+        ? ('🏆', 'Sans-faute !')
+        : ('🌿', 'Niveau validé !');
 
     return Scaffold(
       backgroundColor: AppColors.cream,
@@ -37,7 +38,7 @@ class ResultScreen extends ConsumerWidget {
                 children: [
                   Align(
                     alignment: Alignment.centerRight,
-                    child: IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => context.go('/home')),
+                    child: IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => context.go('/play')),
                   ),
                   Center(
                     child: TweenAnimationBuilder<double>(
@@ -49,9 +50,17 @@ class ResultScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Center(child: Eyebrow('${content.language(level?.languageId ?? '')?.name ?? ''} · Niveau ${level?.order ?? ''}')),
+                  Center(
+                    child: Eyebrow(
+                      '${content.language(level?.languageId ?? '')?.name ?? ''} · Niveau ${level?.order ?? ''}',
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   Center(child: Text(title, style: theme.textTheme.headlineMedium)),
+                  if (outcome.passed) ...[
+                    const SizedBox(height: 6),
+                    Center(child: _AnimatedStars(stars: outcome.stars)),
+                  ],
                   const SizedBox(height: 6),
                   Center(
                     child: Text(
@@ -65,11 +74,46 @@ class ResultScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.section),
                   Row(
                     children: [
-                      Expanded(child: _Stat(label: 'Score', value: '${outcome.correct}/${outcome.total}')),
+                      Expanded(
+                        child: _Stat(label: 'Score', value: '${outcome.correct}/${outcome.total}'),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: _Stat(label: 'XP gagnés', value: '+${outcome.xpGained}', color: AppColors.green500)),
+                      Expanded(
+                        child: _Stat(label: 'XP gagnés', value: '+${outcome.xpGained}', color: AppColors.green500),
+                      ),
                     ],
                   ),
+                  if (outcome.chestCauris > 0) ...[
+                    const SizedBox(height: 12),
+                    _Chest(cauris: outcome.chestCauris, newStars: outcome.stars > outcome.previousStars),
+                  ],
+                  for (final quest in outcome.completedQuests) ...[
+                    const SizedBox(height: 12),
+                    AppCard(
+                      color: AppColors.green100,
+                      border: false,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.task_alt_rounded, color: AppColors.green500),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Eyebrow('Quête du jour terminée', color: AppColors.green500),
+                                Text(quest.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                          const CauriIcon(size: 18),
+                          Text(
+                            ' +${quest.reward}',
+                            style: const TextStyle(fontWeight: FontWeight.w700, color: caurisColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   if (outcome.outOfEnergy) ...[
                     const SizedBox(height: 12),
                     AppCard(
@@ -175,7 +219,7 @@ class ResultScreen extends ConsumerWidget {
                       child: const Text('Niveau suivant'),
                     ),
                   const SizedBox(height: 10),
-                  OutlinedButton(onPressed: () => context.go('/home'), child: const Text('Retour à l\'accueil')),
+                  OutlinedButton(onPressed: () => context.go('/play'), child: const Text('Retour à la carte')),
                 ],
               ),
             ),
@@ -198,8 +242,84 @@ class _Stat extends StatelessWidget {
     return AppCard(
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: color)),
+          Text(
+            value,
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: color),
+          ),
           Text(label, style: const TextStyle(color: AppColors.gray500)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Étoiles qui apparaissent l'une après l'autre.
+class _AnimatedStars extends StatelessWidget {
+  const _AnimatedStars({required this.stars});
+
+  final int stars;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < 3; i++)
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: Duration(milliseconds: 400 + i * 250),
+            curve: Curves.elasticOut,
+            builder: (context, t, child) => Transform.scale(scale: i < stars ? t : 1, child: child),
+            child: Icon(
+              i < stars ? Icons.star_rounded : Icons.star_outline_rounded,
+              size: 44,
+              color: i < stars ? const Color(0xFFF5B301) : AppColors.gray200,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Coffre de fin de niveau : les cauris gagnés.
+class _Chest extends StatelessWidget {
+  const _Chest({required this.cauris, required this.newStars});
+
+  final int cauris;
+  final bool newStars;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      color: const Color(0xFFFFF4DC),
+      border: false,
+      child: Row(
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: -0.25, end: 0),
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.elasticOut,
+            builder: (context, t, child) => Transform.rotate(angle: t, child: child),
+            child: const Icon(Icons.redeem_rounded, size: 40, color: caurisColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Eyebrow('Coffre ouvert', color: caurisColor),
+                Text(
+                  newStars ? 'Une récompense pour tes nouvelles étoiles.' : 'Un petit bonus pour avoir rejoué.',
+                  style: const TextStyle(color: AppColors.gray700, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          const CauriIcon(size: 24),
+          Text(
+            ' +$cauris',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: caurisColor),
+          ),
         ],
       ),
     );

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../services/providers.dart';
 import '../../widgets/common.dart';
+import '../../widgets/language_option.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -21,6 +22,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   /// Aîné : la langue qu'il parle et va transmettre.
   String? _spoken;
 
+  /// Jeune : la langue qu'il veut apprendre.
+  String? _learning;
+
   @override
   void dispose() {
     _name.dispose();
@@ -28,7 +32,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     super.dispose();
   }
 
-  bool get _valid => _name.text.trim().isNotEmpty && _role != null && (_role != 'senior' || _spoken != null);
+  bool get _valid =>
+      _name.text.trim().isNotEmpty &&
+      _role != null &&
+      (_role == 'senior' ? _spoken != null : _learning != null);
 
   Future<void> _submit() async {
     final senior = _role == 'senior';
@@ -36,15 +43,17 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           firstName: _name.text,
           role: _role!,
           spokenLanguageId: senior ? _spoken : null,
+          learningLanguageId: senior ? null : _learning,
           village: senior ? _village.text : null,
         );
-    if (mounted) context.go('/home');
+    if (mounted) context.go('/play');
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final languages = ref.watch(contentProvider).languages;
+    final content = ref.watch(contentProvider);
+    final languages = content.languages;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => context.go('/onboarding')),
@@ -110,30 +119,22 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(hintText: 'Ex. Sakassou'),
               ),
-            ] else ...[
-            const SizedBox(height: AppSpacing.section),
-            Text('Ton parcours', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 4),
-            const Text('Une langue par étape, du mot au proverbe.', style: TextStyle(color: AppColors.gray500)),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                for (final (i, l) in languages.indexed) ...[
-                  if (i > 0) const Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.gray400),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Color(l.color).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(l.name, style: TextStyle(color: Color(l.color), fontWeight: FontWeight.w600)),
-                  ),
-                ],
+            ] else if (_role == 'jeune') ...[
+              const SizedBox(height: AppSpacing.section),
+              Text('Quelle langue veux-tu apprendre ?', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
+              const Text('Ta carte suivra cette langue. Tu pourras en changer dans ton profil.',
+                  style: TextStyle(color: AppColors.gray500)),
+              const SizedBox(height: 10),
+              for (final l in languages) ...[
+                LanguageOption(
+                  language: l,
+                  ready: content.playableLevelsOf(l.id).isNotEmpty,
+                  selected: _learning == l.id,
+                  onTap: () => setState(() => _learning = l.id),
+                ),
+                const SizedBox(height: 8),
               ],
-            ),
             ],
             const SizedBox(height: 32),
             FilledButton(

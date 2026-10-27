@@ -11,8 +11,7 @@ import '../services/providers.dart';
 import 'common.dart';
 
 /// « 14 min » ou « 45 s ».
-String formatWait(Duration wait) =>
-    wait.inSeconds < 60 ? '${wait.inSeconds} s' : '${(wait.inSeconds / 60).ceil()} min';
+String formatWait(Duration wait) => wait.inSeconds < 60 ? '${wait.inSeconds} s' : '${(wait.inSeconds / 60).ceil()} min';
 
 /// Redessine son contenu chaque seconde tant que l'énergie remonte.
 class EnergyBuilder extends ConsumerStatefulWidget {
@@ -52,14 +51,19 @@ class _EnergyBuilderState extends ConsumerState<EnergyBuilder> {
 
 /// Pastille d'énergie : « 3/5 · 12 min ».
 class EnergyPill extends StatelessWidget {
-  const EnergyPill({super.key});
+  const EnergyPill({super.key, this.showWait = true});
+
+  /// Sur les écrans étroits, on n'affiche que « 3/5 », sans le temps d'attente.
+  final bool showWait;
 
   @override
   Widget build(BuildContext context) {
     return EnergyBuilder(
       builder: (context, energy, nextIn) => StatPill(
         icon: Icons.bolt_rounded,
-        label: nextIn == null ? '$energy/${PlayerState.maxEnergy}' : '$energy/${PlayerState.maxEnergy} · ${formatWait(nextIn)}',
+        label: nextIn == null || !showWait
+            ? '$energy/${PlayerState.maxEnergy}'
+            : '$energy/${PlayerState.maxEnergy} · ${formatWait(nextIn)}',
         color: energy == 0 ? AppColors.error : AppColors.purple500,
       ),
     );
@@ -89,11 +93,20 @@ class OutOfEnergyDialog extends StatelessWidget {
           energy > 0
               ? 'Ton énergie est revenue : tu peux rejouer !'
               : 'Chaque mauvaise réponse coûte une énergie. La prochaine revient dans '
-                  '${formatWait(nextIn ?? GameRules.energyRefill)}.\n\nEn attendant, révise avec un aîné ou relève un défi.',
+                    '${formatWait(nextIn ?? GameRules.energyRefill)}.\n\nEn attendant, un entraînement te rend une énergie.',
           textAlign: TextAlign.center,
         ),
       ),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('D\'accord'))],
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Plus tard')),
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(context);
+            context.push('/entrainement');
+          },
+          child: const Text('S\'entraîner'),
+        ),
+      ],
     );
   }
 }

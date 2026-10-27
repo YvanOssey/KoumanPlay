@@ -31,13 +31,13 @@ void main() {
   Set<String> idsOf(ContentPack c, String levelId, [int? count]) =>
       c.itemsOf(levelId).take(count ?? 99).map((i) => i.id).toSet();
   LevelOutcome play(ContentPack c, PlayerState p, String levelId, {int? correct}) => GameRules.completeLevel(
-        content: c,
-        player: p,
-        levelId: levelId,
-        askedIds: idsOf(c, levelId),
-        correctIds: idsOf(c, levelId, correct),
-        now: now,
-      );
+    content: c,
+    player: p,
+    levelId: levelId,
+    askedIds: idsOf(c, levelId),
+    correctIds: idsOf(c, levelId, correct),
+    now: now,
+  );
 
   test('le contenu embarqué est cohérent', () {
     expect(content.languages.map((l) => l.id), ['baoule', 'bete', 'dioula', 'senoufo']);
@@ -45,7 +45,7 @@ void main() {
       expect(content.levelsOf(language.id), isNotEmpty, reason: language.id);
     }
     for (final a in content.activities) {
-      expect(content.level(a.levelId)?.kind, LevelKind.proverbes, reason: a.id);
+      expect(content.level(a.levelId)?.hasActivities, isTrue, reason: a.id);
       expect(a.correct, inInclusiveRange(0, a.answers.length - 1), reason: a.id);
     }
     for (final c in content.challenges) {
@@ -67,32 +67,150 @@ void main() {
     final outcome = play(content, fresh(), 'baoule-6');
     expect(outcome.passed, isTrue);
     expect(outcome.xpGained, 100);
-    expect(outcome.newBadges.map((b) => b.id), containsAll(['premiers-pas', 'passeur-de-sagesse', 'maitre-des-proverbes']));
+    expect(
+      outcome.newBadges.map((b) => b.id),
+      containsAll(['premiers-pas', 'passeur-de-sagesse', 'maitre-des-proverbes']),
+    );
     expect(outcome.unlockedChallenges.map((c) => c.id), ['jeune-proverbe-famille']);
     expect(GameRules.isLevelUnlocked(content, outcome.player, content.level('baoule-7')!), isTrue);
   });
 
-  test('l\'étape suivante s\'ouvre quand l\'étape précédente est terminée', () {
-    final c = _withTestWords(['baoule-1', 'bete-1']);
-    final bete1 = c.level('bete-1')!;
+  test('la carte suit la langue choisie, chacune avec sa propre progression', () {
+    final c = _withTestWords(['bete-1']);
+    var p = fresh().copyWith(learningLanguageId: 'bete');
+    expect(GameRules.learningLanguage(c, p)?.id, 'bete');
+    // Toutes les langues sont ouvertes : le Bété commence par ses proverbes.
+    expect(GameRules.nextLevel(c, p)?.id, 'bete-6');
+    p = play(c, p, 'bete-6').player;
+    expect(GameRules.nextLevel(c, p)?.id, 'bete-1');
+    p = play(c, p, 'bete-1').player;
+    expect(GameRules.nextLevel(c, p), isNull);
+    // Retour au Baoulé : rien n'a été perdu ni validé à sa place.
+    p = p.copyWith(learningLanguageId: 'baoule');
+    expect(GameRules.nextLevel(c, p)?.id, 'baoule-6');
+    expect(p.isLevelPassed('bete-1'), isTrue);
+  });
+
+  test("sans langue choisie, l'aîné voit sa langue et le jeune la première qui a du contenu", () {
+    expect(GameRules.learningLanguage(content, fresh())?.id, 'baoule');
+    final elder = fresh().copyWith(role: 'senior', spokenLanguageId: 'dioula');
+    expect(GameRules.learningLanguage(content, elder)?.id, 'dioula');
+  });
+
+  test('terminer une langue donne le badge Première étape', () {
     var p = fresh();
-    expect(GameRules.isLevelUnlocked(c, p, bete1), isFalse);
-    for (final id in ['baoule-1', 'baoule-6', 'baoule-7', 'baoule-8']) {
-      p = play(c, p, id).player;
+    for (final level in content.playableLevelsOf('baoule')) {
+      p = play(content, p, level.id).player;
     }
-    expect(GameRules.isLanguageCompleted(c, p, c.language('baoule')!), isTrue);
-    expect(GameRules.isLevelUnlocked(c, p, bete1), isTrue);
+    expect(GameRules.isLanguageCompleted(content, p, content.language('baoule')!), isTrue);
     expect(p.badges, contains('etape-terminee'));
   });
 
-  test('une étape sans contenu ne bloque pas les suivantes', () {
-    final c = _withTestWords(['dioula-1']);
+  test('le coffre donne 5 cauris par nouvelle étoile, puis un petit bonus en rejouant', () {
+    final start = fresh().cauris;
+    final first = play(content, fresh(), 'baoule-6');
+    expect(first.stars, 3);
+    expect(first.chestCauris, 3 * GameRules.chestPerStar);
+    expect(first.player.cauris, greaterThanOrEqualTo(start + 15));
+    final again = play(content, first.player, 'baoule-6');
+    expect(again.chestCauris, GameRules.chestReplay);
+    final failed = play(content, fresh(), 'baoule-6', correct: 1);
+    expect(failed.stars, 0);
+    expect(failed.chestCauris, 0);
+  });
+
+  test('étoiles : 3 pour un sans-faute, 2 dès 80 %, 1 pour un niveau juste validé', () {
+    expect(GameRules.stars(5, 5, passed: true), 3);
+    expect(GameRules.stars(4, 5, passed: true), 2);
+    expect(GameRules.stars(5, 7, passed: true), 1);
+    expect(GameRules.stars(4, 5, passed: false), 0);
+  });
+
+  test('les questions ratées partent en entraînement, qui rend énergie et cauris', () {
+    final failed = play(content, fresh(), 'baoule-6', correct: 2);
+    expect(failed.player.toReview, hasLength(3));
+    final tired = GameRules.loseEnergy(GameRules.loseEnergy(failed.player, now), now);
+    final asked = tired.toReview;
+    final practice = GameRules.completePractice(player: tired, askedIds: asked, correctIds: {asked.first}, now: now);
+    expect(practice.player.toReview, hasLength(2));
+    expect(practice.player.cauris, greaterThanOrEqualTo(tired.cauris + GameRules.practiceCauris));
+    expect(GameRules.energyAt(practice.player, now), GameRules.energyAt(tired, now) + 1);
+    final questions = LessonBuilder.practice(content, practice.player.toReview, const {}, random: Random(1));
+    expect(questions.map((q) => q.itemId).toSet(), practice.player.toReview);
+    expect(questions.any((q) => q.isRecall), isFalse);
+  });
+
+  test('les quêtes du jour sont 3, fixes pour un jour, et donnent leurs cauris une fois', () {
+    final day = GameRules.dayKey(now);
+    final quests = GameRules.questsOfDay(day);
+    expect(quests, hasLength(3));
+    expect(quests.map((q) => q.id).toSet(), hasLength(3));
+    expect(GameRules.questsOfDay(day).map((q) => q.id), quests.map((q) => q.id));
+    final quest = quests.first;
+    final (done, completed) = GameRules.progressQuests(fresh(), now, {quest.id: quest.target});
+    expect(completed.map((q) => q.id), [quest.id]);
+    expect(done.cauris, fresh().cauris + quest.reward);
+    final (again, none) = GameRules.progressQuests(done, now, {quest.id: quest.target});
+    expect(none, isEmpty);
+    expect(again.cauris, done.cauris);
+    // Le lendemain, tout repart à zéro.
+    final (tomorrow, _) = GameRules.progressQuests(again, now.add(const Duration(days: 1)), const {});
+    expect(tomorrow.quests?.claimed, isEmpty);
+  });
+
+  test('un indice se paie en cauris, et pas à crédit', () {
+    final p = fresh().copyWith(cauris: 3);
+    expect(GameRules.spendCauris(p, GameRules.hintLetterCost, now)?.cauris, 1);
+    expect(GameRules.spendCauris(p, GameRules.hintWordCost, now), isNull);
+  });
+
+  test("la réponse écrite tolère majuscules, accents et une petite faute", () {
+    expect(TypedAnswer.matches("L'œil n'a pas sommeil", "l'œil n'a pas sommeil"), isTrue);
+    expect(TypedAnswer.matches('loeil na pas sommeil', "l'œil n'a pas sommeil"), isTrue);
+    expect(TypedAnswer.matches("l'œil a sommeil", "l'œil n'a pas sommeil"), isFalse);
+    expect(TypedAnswer.matches("l’oeil n'a pas sommeil.", "l'œil n'a pas sommeil"), isTrue);
+    expect(TypedAnswer.matches('se brisse', 'se brise'), isTrue);
+    expect(TypedAnswer.matches('se casse', 'se brise'), isFalse);
+    expect(TypedAnswer.matches('', 'se brise'), isFalse);
+  });
+
+  test('les indices révèlent une lettre ou un mot', () {
+    const answer = 'le dernier mot';
+    expect(TypedAnswer.nextLetter(answer, 0), 1);
+    expect(TypedAnswer.nextWord(answer, 0), 2);
+    expect(TypedAnswer.nextLetter(answer, 2), 4);
+    expect(TypedAnswer.nextWord(answer, 2), 10);
+    expect(TypedAnswer.mask(answer, 2), 'le  _______  ___');
+  });
+
+  test('un ancien profil avec diamants reçoit 5 cauris par niveau validé', () {
+    final old =
+        fresh().copyWith(levels: {'baoule-6': const LevelResult(bestCorrect: 5, total: 5, passed: true)}).toJson()
+          ..remove('cauris');
+    expect(PlayerState.fromJson(old).cauris, PlayerState.welcomeCauris + 5);
+  });
+
+  test('participer aux événements demande assez de niveaux validés et de niveau', () {
+    final json = _json()
+      ..['settings'] = {'eventMinDiamonds': 2, 'eventMinLevel': 2}
+      ..['events'] = [
+        {'id': 'e1', 'title': 'Test', 'startsAt': '2026-12-01T18:00:00Z'},
+        {'id': 'e2', 'title': 'Test exigeant', 'startsAt': '2026-12-02T18:00:00Z', 'minDiamonds': 3},
+      ];
+    final c = ContentPack.fromJson(json);
     var p = fresh();
-    for (final id in ['baoule-6', 'baoule-7', 'baoule-8']) {
-      p = play(c, p, id).player;
-    }
-    // Bété n'a aucun contenu : le Dioula s'ouvre directement après le Baoulé.
-    expect(GameRules.isLevelUnlocked(c, p, c.level('dioula-1')!), isTrue);
+    expect(GameRules.isEventEligible(c, p), isFalse);
+    p = play(c, p, 'baoule-6').player;
+    p = play(c, p, 'baoule-7').player;
+    expect(p.levelsPassed, 2);
+    expect(GameRules.playerLevel(p.xp), 2);
+    expect(GameRules.isEventEligible(c, p, c.event('e1')), isTrue);
+    // Un événement peut demander plus que le seuil général.
+    expect(GameRules.isEventEligible(c, p, c.event('e2')), isFalse);
+    // Assez de niveaux validés mais pas le niveau de joueur : pas encore.
+    expect(GameRules.isEventEligible(c, p.copyWith(xp: 0)), isFalse);
+    // Les cauris n'achètent pas une place.
+    expect(GameRules.isEventEligible(c, fresh().copyWith(cauris: 9999, xp: 1000)), isFalse);
   });
 
   test('un échec garde l\'XP mais ne valide pas', () {
@@ -125,7 +243,55 @@ void main() {
 
   test('les réponses des proverbes sont mélangées sans perdre la bonne', () {
     final questions = LessonBuilder.build(content, 'baoule-6', random: Random(3));
+    for (final q in questions.where((q) => !q.isRecall)) {
+      final activity = content.activities.firstWhere((a) => a.id == q.itemId);
+      expect(q.answers[q.correct], activity.answers[activity.correct]);
+    }
+  });
+
+  test('un niveau de proverbes finit par des rappels « complète le proverbe »', () {
+    final questions = LessonBuilder.build(content, 'baoule-6', random: Random(5));
+    final recalls = questions.where((q) => q.isRecall).toList();
+    expect(recalls, hasLength(LessonBuilder.recallQuestions));
+    expect(questions.skip(questions.length - recalls.length).every((q) => q.isRecall), isTrue);
+    for (final q in recalls) {
+      final proverb = content.activities.firstWhere((a) => a.id == q.itemId).proverb;
+      final (start, end) = LessonBuilder.splitProverb(proverb)!;
+      expect(q.prompt, '$start …');
+      expect(q.expected, end);
+      expect(q.answers, isEmpty);
+    }
+  });
+
+  test('un proverbe se coupe à la ponctuation, ou au milieu', () {
+    expect(LessonBuilder.splitProverb("Quand le doigt fait mal, l'œil n'a pas sommeil."), (
+      'Quand le doigt fait mal,',
+      "l'œil n'a pas sommeil",
+    ));
+    expect(LessonBuilder.splitProverb('Le pardon est le dernier mot.'), ('Le pardon est', 'le dernier mot'));
+    expect(LessonBuilder.splitProverb("L'amour appelle l'amour."), isNull);
+    // Jamais coupé juste après un petit mot : « face au … » trahirait la réponse.
+    expect(LessonBuilder.splitProverb("L'arbre seul face au vent se brise."), (
+      "L'arbre seul face au vent",
+      'se brise',
+    ));
+  });
+
+  test('les mauvaises réponses ne répètent jamais la bonne', () {
+    for (final a in content.activities) {
+      expect(a.answers.toSet(), hasLength(a.answers.length), reason: a.id);
+    }
+    expect(content.levels.every((l) => l.passRatio >= 0.7), isTrue);
+  });
+
+  test('les trésors sont jouables et ne sont pas présentés comme des proverbes', () {
+    final level = content.level('baoule-12')!;
+    expect(level.kind, LevelKind.tresors);
+    expect(content.isPlayable(level), isTrue);
+    final questions = LessonBuilder.build(content, level.id, random: Random(3));
+    expect(questions, isNotEmpty);
     for (final q in questions) {
+      expect(q.isProverb, isFalse);
       final activity = content.activities.firstWhere((a) => a.id == q.itemId);
       expect(q.answers[q.correct], activity.answers[activity.correct]);
     }
@@ -143,11 +309,23 @@ void main() {
 
   test('un défi ne rapporte son XP qu\'une fois', () {
     final first = GameRules.completeChallenge(
-        content: content, player: fresh(), challengeId: 'jeune-proverbe-famille', note: 'Proverbe', shareNote: false, now: now);
+      content: content,
+      player: fresh(),
+      challengeId: 'jeune-proverbe-famille',
+      note: 'Proverbe',
+      shareNote: false,
+      now: now,
+    );
     expect(first.xpGained, 100);
     expect(first.newBadges.map((b) => b.id), contains('pont-des-generations'));
     final again = GameRules.completeChallenge(
-        content: content, player: first.player, challengeId: 'jeune-proverbe-famille', note: 'Proverbe', shareNote: false, now: now);
+      content: content,
+      player: first.player,
+      challengeId: 'jeune-proverbe-famille',
+      note: 'Proverbe',
+      shareNote: false,
+      now: now,
+    );
     expect(again.xpGained, 0);
   });
 
@@ -202,7 +380,13 @@ void main() {
     expect(back.kind, ContributionKind.proverbe);
     expect(back.audioPaths, hasLength(2));
     expect(back.status, ContributionStatus.aEnvoyer);
-    final p = fresh().copyWith(spokenLanguageId: 'bete', village: 'Gagnoa', consentAt: now, creditName: false, transmitted: {'mot': 3});
+    final p = fresh().copyWith(
+      spokenLanguageId: 'bete',
+      village: 'Gagnoa',
+      consentAt: now,
+      creditName: false,
+      transmitted: {'mot': 3},
+    );
     final restored = PlayerState.fromJson(jsonDecode(jsonEncode(p.toJson())) as Map<String, dynamic>);
     expect(restored.spokenLanguageId, 'bete');
     expect(restored.creditName, isFalse);

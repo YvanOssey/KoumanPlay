@@ -88,8 +88,8 @@ class ElderHomeScreen extends ConsumerWidget {
               icon: Icons.sports_esports_rounded,
               color: AppColors.green500,
               title: 'Jouer',
-              subtitle: 'Découvre les autres langues sur la carte',
-              onTap: () => context.go('/play'),
+              subtitle: 'Découvre les langues sur la carte',
+              onTap: () => context.push('/carte'),
             ),
             if (contributions.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.section),

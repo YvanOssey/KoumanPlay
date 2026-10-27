@@ -8,13 +8,17 @@ import '../../core/theme.dart';
 import '../../models/content.dart';
 import '../../services/providers.dart';
 import '../../widgets/audio_button.dart';
+import '../../widgets/cauris.dart';
 import '../../widgets/common.dart';
 import '../../widgets/energy.dart';
 
+/// Une partie : un niveau, ou un entraînement ([practice]) sur les questions
+/// ratées, sans perte d'énergie.
 class QuizScreen extends ConsumerStatefulWidget {
-  const QuizScreen({super.key, required this.levelId});
+  const QuizScreen({super.key, required this.levelId, this.practice = false});
 
   final String levelId;
+  final bool practice;
 
   @override
   ConsumerState<QuizScreen> createState() => _QuizScreenState();
@@ -34,12 +38,28 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
   /// L'énergie est tombée à 0 pendant la partie : elle s'arrête.
   bool _outOfEnergy = false;
-  final _correctIds = <String>{};
+
+  // Un élément (mot, proverbe) est réussi s'il a été vu et qu'aucune de ses
+  // questions n'a été ratée : un rappel manqué fait échouer le proverbe.
+  final _seenIds = <String>{};
+  final _missedIds = <String>{};
+
+  /// Pour les quêtes du jour.
+  int _correctAnswers = 0;
+  int _recallsWithoutHint = 0;
+
+  /// Rappel : réponse écrite et nombre de lettres révélées par les indices.
+  final _typed = TextEditingController();
+  int _revealed = 0;
+  bool _hinted = false;
+  bool _lastCorrect = false;
+
   final _scroll = ScrollController();
 
   @override
   void dispose() {
     _scroll.dispose();
+    _typed.dispose();
     super.dispose();
   }
 
@@ -47,32 +67,90 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   void initState() {
     super.initState();
     final content = ref.read(contentProvider);
-    _level = content.level(widget.levelId);
-    _language = _level == null ? null : content.language(_level.languageId);
-    _questions = LessonBuilder.build(content, widget.levelId);
-    _blocked = GameRules.energyAt(ref.read(playerProvider), DateTime.now()) == 0;
-    ref.read(analyticsProvider).track('level_started', {'level': widget.levelId});
+    final player = ref.read(playerProvider);
+    if (widget.practice) {
+      _level = null;
+      _language = null;
+      final passed = {
+        for (final e in player.levels.entries)
+          if (e.value.passed) e.key,
+      };
+      _questions = LessonBuilder.practice(content, player.toReview, passed);
+      _blocked = false;
+    } else {
+      _level = content.level(widget.levelId);
+      _language = _level == null ? null : content.language(_level.languageId);
+      _questions = LessonBuilder.build(content, widget.levelId);
+      _blocked = GameRules.energyAt(player, DateTime.now()) == 0;
+    }
+    _typed.addListener(() => setState(() {}));
+    ref.read(analyticsProvider).track(widget.practice ? 'practice_started' : 'level_started', {
+      'level': widget.levelId,
+    });
   }
 
   LessonQuestion get _current => _questions[_index];
 
+  bool get _canSubmit => _current.isRecall ? _typed.text.trim().isNotEmpty : _selected != null;
+
   void _submit() {
-    final correct = _selected == _current.correct;
+    final question = _current;
+    final correct = question.isRecall
+        ? TypedAnswer.matches(_typed.text, question.expected!)
+        : _selected == question.correct;
     // Décidé tout de suite, pour que « Question suivante » ne s'affiche pas
     // sur la dernière énergie.
-    final lastEnergy = !correct && GameRules.energyAt(ref.read(playerProvider), DateTime.now()) <= 1;
+    final costsEnergy = !widget.practice && !correct;
+    final lastEnergy = costsEnergy && GameRules.energyAt(ref.read(playerProvider), DateTime.now()) <= 1;
     setState(() {
       _submitted = true;
-      if (correct) _correctIds.add(_current.itemId);
+      _lastCorrect = correct;
+      _seenIds.add(question.itemId);
+      if (!correct) _missedIds.add(question.itemId);
+      if (correct) _correctAnswers++;
+      if (correct && question.isRecall && !_hinted) _recallsWithoutHint++;
       if (lastEnergy) _outOfEnergy = true;
     });
-    ref.read(analyticsProvider).track('answer', {'activity': _current.itemId, 'correct': correct, 'choice': _selected});
-    if (!correct) ref.read(playerProvider.notifier).loseEnergy();
+    FocusScope.of(context).unfocus();
+    ref.read(analyticsProvider).track('answer', {
+      'activity': question.itemId,
+      'correct': correct,
+      'recall': question.isRecall,
+      'hinted': _hinted,
+      'practice': widget.practice,
+    });
+    if (costsEnergy) ref.read(playerProvider.notifier).loseEnergy();
     // Fait apparaître l'explication si elle est sous le bas de l'écran.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
-        _scroll.animateTo(_scroll.position.maxScrollExtent, duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOut,
+        );
       }
+    });
+  }
+
+  /// Indice payé en cauris : révèle une lettre ou un mot de la réponse.
+  Future<void> _hint({required bool word}) async {
+    final expected = _current.expected!;
+    final cost = word ? GameRules.hintWordCost : GameRules.hintLetterCost;
+    final paid = await ref.read(playerProvider.notifier).spendCauris(cost, reason: word ? 'hint_word' : 'hint_letter');
+    if (!mounted) return;
+    if (!paid) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Pas assez de cauris. Gagne-en avec les coffres et les quêtes du jour.')),
+        );
+      return;
+    }
+    setState(() {
+      _hinted = true;
+      _revealed = word ? TypedAnswer.nextWord(expected, _revealed) : TypedAnswer.nextLetter(expected, _revealed);
+      _typed.text = expected.substring(0, _revealed);
+      _typed.selection = TextSelection.collapsed(offset: _typed.text.length);
     });
   }
 
@@ -82,17 +160,34 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         _index++;
         _selected = null;
         _submitted = false;
+        _revealed = 0;
+        _hinted = false;
+        _typed.clear();
       });
       _scroll.jumpTo(0);
       return;
     }
     setState(() => _finishing = true);
-    final outcome = await ref.read(playerProvider.notifier).completeLevel(
-          widget.levelId,
-          askedIds: {for (final q in _questions) q.itemId},
-          correctIds: _correctIds,
-          outOfEnergy: _outOfEnergy,
-        );
+    final notifier = ref.read(playerProvider.notifier);
+    final asked = {for (final q in _questions) q.itemId};
+    if (widget.practice) {
+      final outcome = await notifier.completePractice(askedIds: asked, correctIds: _seenIds.difference(_missedIds));
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => _PracticeDone(outcome: outcome),
+      );
+      if (mounted) context.pop();
+      return;
+    }
+    final outcome = await notifier.completeLevel(
+      widget.levelId,
+      askedIds: asked,
+      correctIds: _seenIds.difference(_missedIds),
+      outOfEnergy: _outOfEnergy,
+      correctAnswers: _correctAnswers,
+      recallsWithoutHint: _recallsWithoutHint,
+    );
     if (mounted) context.pushReplacement('/result', extra: outcome);
   }
 
@@ -113,22 +208,37 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_level == null || _questions.isEmpty) {
+    if (_questions.isEmpty || (!widget.practice && _level == null)) {
       return Scaffold(
         appBar: AppBar(),
-        body: const Center(child: Text('Ce niveau n\'est pas encore disponible.')),
+        body: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Center(
+            child: Text(
+              widget.practice
+                  ? 'Valide un premier niveau pour débloquer l\'entraînement.'
+                  : 'Ce niveau n\'est pas encore disponible.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
       );
     }
     if (_blocked) {
       return Scaffold(
         appBar: AppBar(),
-        body: const Padding(padding: EdgeInsets.all(AppSpacing.screen), child: Center(child: OutOfEnergyDialog())),
+        body: const Padding(
+          padding: EdgeInsets.all(AppSpacing.screen),
+          child: Center(child: OutOfEnergyDialog()),
+        ),
       );
     }
     final theme = Theme.of(context);
     final question = _current;
-    final isCorrect = _selected == question.correct;
     final color = _language == null ? AppColors.purple500 : Color(_language.color);
+    final eyebrow = widget.practice
+        ? 'Entraînement · sans perte d\'énergie'
+        : '${_language?.name ?? ''} · Niveau ${_level!.order} · ${_level.kindLabel}';
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -150,7 +260,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                     const SizedBox(width: 12),
                     Text('${_index + 1}/${_questions.length}', style: const TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(width: 10),
-                    const EnergyPill(),
+                    const EnergyPill(showWait: false),
                   ],
                 ),
               ),
@@ -161,13 +271,12 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                   children: [
                     Row(
                       children: [
-                        Expanded(
-                          child: Eyebrow(
-                            '${_language?.name ?? ''} · Niveau ${_level.order} · ${_level.kindLabel}',
-                            color: color,
+                        Expanded(child: Eyebrow(eyebrow, color: color)),
+                        if (!widget.practice)
+                          Text(
+                            '+${question.xp} XP',
+                            style: const TextStyle(color: AppColors.green500, fontWeight: FontWeight.w600),
                           ),
-                        ),
-                        Text('+${question.xp} XP', style: const TextStyle(color: AppColors.green500, fontWeight: FontWeight.w600)),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -181,16 +290,34 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                       _PromptCard(question: question),
                     ],
                     const SizedBox(height: 16),
-                    for (var i = 0; i < question.answers.length; i++) ...[
-                      _AnswerTile(
-                        letter: String.fromCharCode(65 + i),
-                        text: question.answers[i],
-                        state: _answerState(i),
-                        onTap: _submitted ? null : () => setState(() => _selected = i),
+                    if (question.isRecall)
+                      _RecallInput(
+                        controller: _typed,
+                        expected: question.expected!,
+                        revealed: _revealed,
+                        submitted: _submitted,
+                        correct: _lastCorrect,
+                        onSubmit: _canSubmit && !_submitted ? _submit : null,
+                        onHintLetter: () => _hint(word: false),
+                        onHintWord: () => _hint(word: true),
+                      )
+                    else
+                      for (var i = 0; i < question.answers.length; i++) ...[
+                        _AnswerTile(
+                          letter: String.fromCharCode(65 + i),
+                          text: question.answers[i],
+                          state: _answerState(i),
+                          onTap: _submitted ? null : () => setState(() => _selected = i),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                    if (_submitted)
+                      _Feedback(
+                        correct: _lastCorrect,
+                        question: question,
+                        outOfEnergy: _outOfEnergy,
+                        costsEnergy: !widget.practice,
                       ),
-                      const SizedBox(height: 10),
-                    ],
-                    if (_submitted) _Feedback(correct: isCorrect, question: question, outOfEnergy: _outOfEnergy),
                   ],
                 ),
               ),
@@ -200,13 +327,17 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                   onPressed: _finishing
                       ? null
                       : !_submitted
-                          ? (_selected == null ? null : _submit)
-                          : _next,
-                  child: Text(!_submitted
-                      ? 'Valider ma réponse'
-                      : !_outOfEnergy && _index < _questions.length - 1
-                          ? 'Question suivante'
-                          : 'Voir mon résultat'),
+                      ? (_canSubmit ? _submit : null)
+                      : _next,
+                  child: Text(
+                    !_submitted
+                        ? 'Valider ma réponse'
+                        : !_outOfEnergy && _index < _questions.length - 1
+                        ? 'Question suivante'
+                        : widget.practice
+                        ? 'Terminer l\'entraînement'
+                        : 'Voir mon résultat',
+                  ),
                 ),
               ),
             ],
@@ -221,6 +352,152 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     if (i == _current.correct) return _AnswerState.correct;
     if (i == _selected) return _AnswerState.wrong;
     return _AnswerState.idle;
+  }
+}
+
+/// Rappel : gabarit des lettres, champ de saisie et indices payants.
+class _RecallInput extends ConsumerWidget {
+  const _RecallInput({
+    required this.controller,
+    required this.expected,
+    required this.revealed,
+    required this.submitted,
+    required this.correct,
+    required this.onSubmit,
+    required this.onHintLetter,
+    required this.onHintWord,
+  });
+
+  final TextEditingController controller;
+  final String expected;
+  final int revealed;
+  final bool submitted;
+  final bool correct;
+  final VoidCallback? onSubmit;
+  final VoidCallback onHintLetter;
+  final VoidCallback onHintWord;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cauris = ref.watch(playerProvider.select((p) => p.cauris));
+    final complete = revealed >= expected.length;
+    final border = !submitted ? AppColors.purple500 : (correct ? AppColors.green500 : AppColors.error);
+    Widget hintButton(String label, int cost, VoidCallback onTap) => Expanded(
+      child: OutlinedButton(
+        onPressed: submitted || complete || cauris < cost ? null : onTap,
+        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10)),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label),
+              const SizedBox(width: 6),
+              const CauriIcon(size: 16),
+              Text(' $cost', style: const TextStyle(fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          TypedAnswer.mask(expected, revealed),
+          style: const TextStyle(fontSize: 18, letterSpacing: 2, fontWeight: FontWeight.w600, color: AppColors.gray700),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: controller,
+          enabled: !submitted,
+          autocorrect: false,
+          enableSuggestions: false,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => onSubmit?.call(),
+          decoration: InputDecoration(
+            hintText: 'Écris la suite du proverbe',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.button),
+              borderSide: BorderSide(color: border, width: 1.5),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.button),
+              borderSide: BorderSide(color: border, width: 1.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            const Text('Bloqué ?', style: TextStyle(color: AppColors.gray500)),
+            const Spacer(),
+            CauriPill(cauris: cauris),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            hintButton('Une lettre', GameRules.hintLetterCost, onHintLetter),
+            const SizedBox(width: 10),
+            hintButton('Un mot', GameRules.hintWordCost, onHintWord),
+          ],
+        ),
+        const SizedBox(height: 6),
+      ],
+    );
+  }
+}
+
+/// Fin d'un entraînement : bilan, cauris et énergie regagnés.
+class _PracticeDone extends StatelessWidget {
+  const _PracticeDone({required this.outcome});
+
+  final PracticeOutcome outcome;
+
+  @override
+  Widget build(BuildContext context) {
+    final questCauris = outcome.completedQuests.fold<int>(0, (s, q) => s + q.reward);
+    return AlertDialog(
+      icon: const Icon(Icons.autorenew_rounded, color: AppColors.purple500, size: 40),
+      title: const Text('Entraînement terminé'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('${outcome.correct} bonnes réponses sur ${outcome.total}.', textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CauriIcon(size: 20),
+              Text(
+                ' +${outcome.cauris + questCauris}',
+                style: const TextStyle(fontWeight: FontWeight.w700, color: caurisColor),
+              ),
+              if (outcome.energyGained > 0) ...[
+                const SizedBox(width: 16),
+                const Icon(Icons.bolt_rounded, color: AppColors.purple500),
+                Text(
+                  '+${outcome.energyGained}',
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.purple500),
+                ),
+              ],
+            ],
+          ),
+          for (final q in outcome.completedQuests) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Quête terminée : ${q.title}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.green500),
+            ),
+          ],
+        ],
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Super !'))],
+    );
   }
 }
 
@@ -244,7 +521,10 @@ class _PromptCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (question.isProverb)
-                  const Text('“', style: TextStyle(fontSize: 40, height: 0.8, color: AppColors.gold, fontWeight: FontWeight.w700)),
+                  const Text(
+                    '“',
+                    style: TextStyle(fontSize: 40, height: 0.8, color: AppColors.gold, fontWeight: FontWeight.w700),
+                  ),
                 Text(
                   question.prompt,
                   style: question.isProverb
@@ -304,7 +584,10 @@ class _AnswerTile extends StatelessWidget {
                 height: 30,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(color: badge, borderRadius: BorderRadius.circular(8)),
-                child: Text(letter, style: TextStyle(color: badgeText, fontWeight: FontWeight.w700)),
+                child: Text(
+                  letter,
+                  style: TextStyle(color: badgeText, fontWeight: FontWeight.w700),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(child: Text(text, style: const TextStyle(fontSize: 15))),
@@ -317,11 +600,19 @@ class _AnswerTile extends StatelessWidget {
 }
 
 class _Feedback extends StatelessWidget {
-  const _Feedback({required this.correct, required this.question, required this.outOfEnergy});
+  const _Feedback({
+    required this.correct,
+    required this.question,
+    required this.outOfEnergy,
+    required this.costsEnergy,
+  });
 
   final bool correct;
   final LessonQuestion question;
   final bool outOfEnergy;
+
+  /// Entraînement : une erreur ne coûte pas d'énergie.
+  final bool costsEnergy;
 
   @override
   Widget build(BuildContext context) {
@@ -355,11 +646,13 @@ class _Feedback extends StatelessWidget {
                     style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                   if (!correct)
-                    Text('La bonne réponse était : ${question.answers[question.correct]}',
-                        style: const TextStyle(fontWeight: FontWeight.w500)),
+                    Text(
+                      'La bonne réponse était : ${question.expected ?? question.answers[question.correct]}',
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
                   const SizedBox(height: 4),
                   Text(question.explanation, style: const TextStyle(color: AppColors.gray700)),
-                  if (!correct) ...[
+                  if (!correct && costsEnergy) ...[
                     const SizedBox(height: 6),
                     Text(
                       outOfEnergy ? '−1 énergie : tu n\'en as plus, la partie s\'arrête ici.' : '−1 énergie',

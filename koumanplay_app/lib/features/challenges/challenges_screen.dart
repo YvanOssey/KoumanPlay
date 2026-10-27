@@ -7,6 +7,7 @@ import '../../models/content.dart';
 import '../../models/player.dart';
 import '../../services/providers.dart';
 import 'challenge_card.dart';
+import 'daily_board.dart';
 
 class ChallengesScreen extends ConsumerWidget {
   const ChallengesScreen({super.key});
@@ -65,14 +66,24 @@ class ChallengesScreen extends ConsumerWidget {
                 style: const TextStyle(color: AppColors.gray500),
               ),
             ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(AppSpacing.screen, 12, AppSpacing.screen, 4),
+              child: DailyBoard(),
+            ),
             TabBar(
               labelColor: AppColors.purple500,
               unselectedLabelColor: AppColors.gray500,
               indicatorColor: AppColors.purple500,
               tabs: [
-                Tab(text: 'À faire (${todo.length})'),
-                Tab(text: 'En cours (${inProgress.length})'),
-                Tab(text: 'Terminés (${done.length})'),
+                // Libellés réduits plutôt que coupés sur les petits écrans.
+                for (final label in [
+                  'À faire (${todo.length})',
+                  'En cours (${inProgress.length})',
+                  'Terminés (${done.length})',
+                ])
+                  Tab(
+                    child: FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1, softWrap: false)),
+                  ),
               ],
             ),
             Expanded(

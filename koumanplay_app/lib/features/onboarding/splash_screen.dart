@@ -20,7 +20,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // Joueur déjà inscrit : on passe directement à l'accueil.
     if (ref.read(playerProvider).onboarded) {
       Future.delayed(const Duration(milliseconds: 900), () {
-        if (mounted) context.go('/home');
+        if (mounted) context.go('/play');
       });
     }
   }
