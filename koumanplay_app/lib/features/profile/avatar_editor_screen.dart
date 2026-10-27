@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/game_rules.dart';
 import '../../core/theme.dart';
 import '../../models/avatar.dart';
 import '../../services/providers.dart';
 import '../../widgets/avatar_view.dart';
+import '../../widgets/cauris.dart';
 
 /// Éditeur d'avatar : aperçu en grand, puis une rangée de choix par pièce.
 /// Chaque choix est montré appliqué à l'avatar du joueur.
@@ -20,15 +22,31 @@ class _AvatarEditorScreenState extends ConsumerState<AvatarEditorScreen> {
   late AvatarConfig _avatar = ref.read(playerProvider).avatarOrDefault;
   bool _saving = false;
 
+  /// Les pièces payantes s'essaient librement ; elles se débloquent en
+  /// cauris au moment d'enregistrer.
   Future<void> _save() async {
     setState(() => _saving = true);
-    await ref.read(playerProvider.notifier).setAvatar(_avatar);
-    if (mounted) context.pop();
+    final ok = await ref.read(playerProvider.notifier).buyAndSetAvatar(_avatar);
+    if (!mounted) return;
+    if (ok) {
+      context.pop();
+      return;
+    }
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Pas assez de cauris pour ces pièces.'),
+        action: SnackBarAction(label: 'Boutique', onPressed: () => context.push('/boutique')),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final player = ref.watch(playerProvider);
+    final cost = GameRules.avatarCost(player, _avatar);
+    int priceIfLocked(String item) => player.ownsItem(item) ? 0 : AvatarConfig.priceOf(item);
     Widget section(String title, Widget child) => Padding(
       padding: const EdgeInsets.only(top: AppSpacing.section),
       child: Column(
@@ -41,21 +59,23 @@ class _AvatarEditorScreenState extends ConsumerState<AvatarEditorScreen> {
       ),
     );
 
-    Widget choices(Map<String, String> catalog, String selected, AvatarConfig Function(String id) apply) => SizedBox(
-      height: 108,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          for (final e in catalog.entries)
-            _Choice(
-              label: e.value,
-              selected: e.key == selected,
-              preview: apply(e.key),
-              onTap: () => setState(() => _avatar = apply(e.key)),
-            ),
-        ],
-      ),
-    );
+    Widget choices(String type, Map<String, String> catalog, String selected, AvatarConfig Function(String id) apply) =>
+        SizedBox(
+          height: 108,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final e in catalog.entries)
+                _Choice(
+                  label: e.value,
+                  selected: e.key == selected,
+                  preview: apply(e.key),
+                  price: priceIfLocked('$type:${e.key}'),
+                  onTap: () => setState(() => _avatar = apply(e.key)),
+                ),
+            ],
+          ),
+        );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mon avatar')),
@@ -67,6 +87,8 @@ class _AvatarEditorScreenState extends ConsumerState<AvatarEditorScreen> {
                 padding: const EdgeInsets.all(AppSpacing.screen),
                 children: [
                   Center(child: AvatarView(config: _avatar, size: 180)),
+                  const SizedBox(height: 10),
+                  Center(child: CauriPill(cauris: player.cauris)),
                   section(
                     'Teint',
                     Wrap(
@@ -82,11 +104,22 @@ class _AvatarEditorScreenState extends ConsumerState<AvatarEditorScreen> {
                       ],
                     ),
                   ),
-                  section('Coiffure', choices(AvatarConfig.hairs, _avatar.hair, (id) => _avatar.copyWith(hair: id))),
-                  section('Tenue', choices(AvatarConfig.outfits, _avatar.outfit, (id) => _avatar.copyWith(outfit: id))),
+                  section(
+                    'Coiffure',
+                    choices('hair', AvatarConfig.hairs, _avatar.hair, (id) => _avatar.copyWith(hair: id)),
+                  ),
+                  section(
+                    'Tenue',
+                    choices('outfit', AvatarConfig.outfits, _avatar.outfit, (id) => _avatar.copyWith(outfit: id)),
+                  ),
                   section(
                     'Décor',
-                    choices(AvatarConfig.backgrounds, _avatar.background, (id) => _avatar.copyWith(background: id)),
+                    choices(
+                      'background',
+                      AvatarConfig.backgrounds,
+                      _avatar.background,
+                      (id) => _avatar.copyWith(background: id),
+                    ),
                   ),
                   section(
                     'Accessoires',
@@ -96,7 +129,11 @@ class _AvatarEditorScreenState extends ConsumerState<AvatarEditorScreen> {
                       children: [
                         for (final e in AvatarConfig.accessoryNames.entries)
                           FilterChip(
-                            label: Text(e.value),
+                            label: Text(
+                              priceIfLocked('accessory:${e.key}') > 0
+                                  ? '${e.value} · ${priceIfLocked('accessory:${e.key}')} cauris'
+                                  : e.value,
+                            ),
                             selected: _avatar.accessories.contains(e.key),
                             onSelected: (on) => setState(
                               () => _avatar = _avatar.copyWith(
@@ -119,7 +156,10 @@ class _AvatarEditorScreenState extends ConsumerState<AvatarEditorScreen> {
             ),
             Padding(
               padding: const EdgeInsets.all(AppSpacing.screen),
-              child: FilledButton(onPressed: _saving ? null : _save, child: const Text('Enregistrer mon avatar')),
+              child: FilledButton(
+                onPressed: _saving ? null : _save,
+                child: Text(cost > 0 ? 'Débloquer pour $cost cauris et enregistrer' : 'Enregistrer mon avatar'),
+              ),
             ),
           ],
         ),
@@ -129,12 +169,21 @@ class _AvatarEditorScreenState extends ConsumerState<AvatarEditorScreen> {
 }
 
 class _Choice extends StatelessWidget {
-  const _Choice({required this.label, required this.selected, required this.preview, required this.onTap});
+  const _Choice({
+    required this.label,
+    required this.selected,
+    required this.preview,
+    required this.onTap,
+    this.price = 0,
+  });
 
   final String label;
   final bool selected;
   final AvatarConfig preview;
   final VoidCallback onTap;
+
+  /// Prix en cauris si la pièce n'est pas encore débloquée.
+  final int price;
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +202,36 @@ class _Choice extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: selected ? AppColors.purple500 : Colors.transparent, width: 3),
                 ),
-                child: AvatarView(config: preview, size: 64),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    AvatarView(config: preview, size: 64),
+                    if (price > 0)
+                      Positioned(
+                        right: -6,
+                        bottom: -4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: caurisColor),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.lock_rounded, size: 11, color: caurisColor),
+                              const SizedBox(width: 2),
+                              Text(
+                                '$price',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: caurisColor),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 4),
               Text(

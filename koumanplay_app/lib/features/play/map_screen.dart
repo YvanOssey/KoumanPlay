@@ -233,7 +233,7 @@ class _MapHeader extends StatelessWidget {
                 // Le nom de la langue passe avant le temps d'attente sur les petits écrans.
                 EnergyPill(showWait: constraints.maxWidth >= 340),
                 const SizedBox(width: 8),
-                CauriPill(cauris: cauris),
+                GestureDetector(onTap: () => context.push('/boutique'), child: CauriPill(cauris: cauris)),
               ],
             ),
           ),

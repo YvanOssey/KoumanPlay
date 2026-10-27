@@ -127,6 +127,31 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           ],
+          const SizedBox(height: 12),
+          AppCard(
+            onTap: () => context.push('/boutique'),
+            child: Row(
+              children: [
+                const CauriIcon(size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Boutique', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        GameRules.isPremium(player, DateTime.now())
+                            ? "KoumanPlay+ actif · objets d'avatar, cauris"
+                            : "Objets d'avatar, cauris et KoumanPlay+",
+                        style: const TextStyle(color: AppColors.gray500, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded),
+              ],
+            ),
+          ),
           const SizedBox(height: AppSpacing.section),
           Text('Badges', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),

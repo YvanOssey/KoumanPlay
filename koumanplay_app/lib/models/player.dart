@@ -117,6 +117,8 @@ class PlayerState {
     this.cauris = welcomeCauris,
     this.quests,
     this.toReview = const {},
+    this.ownedItems = const {},
+    this.premiumUntil,
   });
 
   /// Énergie maximale ; une mauvaise réponse en coûte une.
@@ -191,6 +193,14 @@ class PlayerState {
   /// Questions ratées, à revoir en mode Entraînement.
   final Set<String> toReview;
 
+  /// Pièces d'avatar débloquées avec des cauris (« type:id »).
+  final Set<String> ownedItems;
+
+  /// Fin de l'abonnement KoumanPlay+ (payé en ligne, donné par le serveur).
+  final DateTime? premiumUntil;
+
+  bool ownsItem(String item) => AvatarConfig.priceOf(item) == 0 || ownedItems.contains(item);
+
   AvatarConfig get avatarOrDefault => avatar ?? (isSenior ? AvatarConfig.elderDefault : AvatarConfig.youngDefault);
 
   int get transmittedTotal => transmitted.values.fold(0, (a, b) => a + b);
@@ -227,6 +237,8 @@ class PlayerState {
     int? cauris,
     QuestProgress? quests,
     Set<String>? toReview,
+    Set<String>? ownedItems,
+    DateTime? premiumUntil,
   }) =>
       PlayerState(
         firstName: firstName ?? this.firstName,
@@ -253,6 +265,8 @@ class PlayerState {
         cauris: cauris ?? this.cauris,
         quests: quests ?? this.quests,
         toReview: toReview ?? this.toReview,
+        ownedItems: ownedItems ?? this.ownedItems,
+        premiumUntil: premiumUntil ?? this.premiumUntil,
       );
 
   Map<String, dynamic> toJson() => {
@@ -280,6 +294,8 @@ class PlayerState {
         'cauris': cauris,
         'quests': quests?.toJson(),
         'toReview': toReview.toList(),
+        'ownedItems': ownedItems.toList(),
+        'premiumUntil': premiumUntil?.toUtc().toIso8601String(),
       };
 
   factory PlayerState.fromJson(Map<String, dynamic> json) => PlayerState(
@@ -313,5 +329,12 @@ class PlayerState {
             welcomeCauris + 5 * ((json['levels'] as Map?) ?? const {}).values.where((v) => (v as Map)['passed'] == true).length,
         quests: json['quests'] is Map ? QuestProgress.fromJson((json['quests'] as Map).cast<String, dynamic>()) : null,
         toReview: ((json['toReview'] as List?) ?? const []).cast<String>().toSet(),
+        // Profils d'avant la boutique : les pièces déjà portées restent acquises.
+        ownedItems: json['ownedItems'] is List
+            ? (json['ownedItems'] as List).cast<String>().toSet()
+            : json['avatar'] is Map
+            ? AvatarConfig.fromJson((json['avatar'] as Map).cast<String, dynamic>()).items
+            : const {},
+        premiumUntil: DateTime.tryParse(json['premiumUntil'] as String? ?? ''),
       );
 }

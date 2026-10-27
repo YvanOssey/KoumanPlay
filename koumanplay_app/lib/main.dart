@@ -43,6 +43,8 @@ Future<void> main() async {
       container.read(contentProvider.notifier).refresh();
       container.read(analyticsProvider).flush();
       container.read(contributionsProvider.notifier).sync();
+      // Retour de la page de paiement : les achats payés arrivent.
+      container.read(playerProvider.notifier).refreshPurchases();
     },
   );
 

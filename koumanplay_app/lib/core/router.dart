@@ -18,6 +18,7 @@ import '../features/profile/account_screen.dart';
 import '../features/profile/avatar_editor_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/shell/main_shell.dart';
+import '../features/shop/shop_screen.dart';
 import '../services/providers.dart';
 import 'game_rules.dart';
 
@@ -79,6 +80,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/account', builder: (context, state) => const AccountScreen()),
       GoRoute(path: '/avatar', builder: (context, state) => const AvatarEditorScreen()),
+      GoRoute(path: '/boutique', builder: (context, state) => const ShopScreen()),
       GoRoute(path: '/entrainement', builder: (context, state) => const QuizScreen(levelId: 'entrainement', practice: true)),
       GoRoute(
         path: '/transmettre/accord',

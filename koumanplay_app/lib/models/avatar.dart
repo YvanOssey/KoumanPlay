@@ -42,6 +42,28 @@ class AvatarConfig {
     'lunettes': 'Lunettes',
   };
 
+  /// Pièces à débloquer en cauris (« type:id ») ; les autres sont gratuites.
+  static const prices = {
+    'hair:foulard-rouge': 30,
+    'outfit:wax': 40,
+    'outfit:bogolan': 60,
+    'background:plateau': 30,
+    'background:lagune': 30,
+    'accessory:boucles': 20,
+    'accessory:collier': 25,
+  };
+
+  static int priceOf(String item) => prices[item] ?? 0;
+
+  /// Pièces utilisées par cet avatar, au format « type:id ».
+  Set<String> get items => {
+    'skin:$skin',
+    'hair:$hair',
+    'outfit:$outfit',
+    'background:$background',
+    for (final a in accessories) 'accessory:$a',
+  };
+
   /// Avatar de départ, avant que le joueur ne le personnalise.
   static const youngDefault = AvatarConfig();
   static const elderDefault = AvatarConfig(hair: 'foulard-rouge', accessories: {'collier', 'lunettes'});

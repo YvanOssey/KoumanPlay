@@ -1,3 +1,4 @@
+import '../models/avatar.dart';
 import '../models/content.dart';
 import '../models/player.dart';
 
@@ -33,9 +34,12 @@ class GameRules {
     return elapsed.isNegative ? 0 : elapsed.inSeconds ~/ energyRefill.inSeconds;
   }
 
+  /// KoumanPlay+ actif : énergie illimitée et coffres doublés.
+  static bool isPremium(PlayerState player, DateTime now) => player.premiumUntil?.isAfter(now) ?? false;
+
   /// Énergie disponible à [now].
   static int energyAt(PlayerState player, DateTime now) {
-    if (player.energySince == null) return PlayerState.maxEnergy;
+    if (player.energySince == null || isPremium(player, now)) return PlayerState.maxEnergy;
     return (player.energy + _refills(player, now)).clamp(0, PlayerState.maxEnergy);
   }
 
@@ -51,6 +55,7 @@ class GameRules {
   /// Retire une énergie (mauvaise réponse). Le temps déjà écoulé vers la
   /// prochaine énergie est conservé.
   static PlayerState loseEnergy(PlayerState player, DateTime now) {
+    if (isPremium(player, now)) return player;
     final current = energyAt(player, now);
     if (current <= 0) return player;
     final since = player.energySince;
@@ -87,6 +92,27 @@ class GameRules {
   /// Entraînement terminé : 3 cauris et 1 énergie.
   static const practiceCauris = 3;
   static const practiceEnergy = 1;
+
+  /// Débloque une pièce d'avatar avec des cauris ; null s'il n'y en a pas
+  /// assez. Une pièce gratuite ou déjà acquise ne coûte rien.
+  static PlayerState? buyItem(PlayerState player, String item, DateTime now) {
+    if (player.ownsItem(item)) return player;
+    final paid = spendCauris(player, AvatarConfig.priceOf(item), now);
+    return paid?.copyWith(ownedItems: {...player.ownedItems, item});
+  }
+
+  /// Cauris restant à payer pour enregistrer [avatar].
+  static int avatarCost(PlayerState player, AvatarConfig avatar) =>
+      avatar.items.where((i) => !player.ownsItem(i)).fold(0, (sum, i) => sum + AvatarConfig.priceOf(i));
+
+  /// Achats en ligne livrés par le serveur : cauris payés et fin de KoumanPlay+.
+  static PlayerState applyPurchases(PlayerState player, {required int cauris, DateTime? premiumUntil, required DateTime now}) {
+    final until = premiumUntil == null || (player.premiumUntil?.isAfter(premiumUntil) ?? false)
+        ? player.premiumUntil
+        : premiumUntil;
+    if (cauris == 0 && until == player.premiumUntil) return player;
+    return player.copyWith(cauris: player.cauris + cauris, premiumUntil: until, updatedAt: now);
+  }
 
   /// Dépense des cauris ; null s'il n'y en a pas assez.
   static PlayerState? spendCauris(PlayerState player, int amount, DateTime now) =>
@@ -304,11 +330,13 @@ class GameRules {
     final previous = player.levels[levelId];
     final previousStars = levelStars(player, levelId);
     final runStars = stars(correct, total, passed: passed);
-    final chest = !passed
-        ? 0
-        : runStars > previousStars
-        ? chestPerStar * (runStars - previousStars)
-        : chestReplay;
+    final chest =
+        (!passed
+            ? 0
+            : runStars > previousStars
+            ? chestPerStar * (runStars - previousStars)
+            : chestReplay) *
+        (isPremium(player, now) ? 2 : 1);
     final result = LevelResult(
       bestCorrect: previous == null || correct > previous.bestCorrect ? correct : previous.bestCorrect,
       total: total,

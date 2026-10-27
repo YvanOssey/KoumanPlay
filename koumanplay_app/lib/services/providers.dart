@@ -136,6 +136,8 @@ class PlayerController extends Notifier<PlayerState> {
     } else {
       await _pushRemote();
     }
+    // Achats faits ailleurs (version web) ou terminés pendant que l'app était fermée.
+    await refreshPurchases();
   }
 
   /// Après connexion à un compte existant : la progression du compte remplace
@@ -197,6 +199,37 @@ class PlayerController extends Notifier<PlayerState> {
     await _save(outcome.player);
     _analytics.track('practice_completed', {'correct': outcome.correct, 'total': outcome.total});
     return outcome;
+  }
+
+  /// Débloque les pièces payantes de [avatar] avec des cauris, puis
+  /// l'enregistre. False s'il n'y a pas assez de cauris.
+  Future<bool> buyAndSetAvatar(AvatarConfig avatar) async {
+    final now = DateTime.now();
+    final cost = GameRules.avatarCost(state, avatar);
+    if (cost > state.cauris) return false;
+    var next = state;
+    for (final item in avatar.items) {
+      next = GameRules.buyItem(next, item, now)!;
+    }
+    await _save(next.copyWith(avatar: avatar, updatedAt: now));
+    if (cost > 0) _analytics.track('avatar_items_bought', {'cauris': cost});
+    _analytics.track('avatar_updated', {'hair': avatar.hair, 'outfit': avatar.outfit});
+    return true;
+  }
+
+  /// Ajoute les achats en ligne livrés par le serveur. Renvoie les cauris reçus.
+  Future<int> refreshPurchases() async {
+    final purchases = await _backend.claimPurchases();
+    if (purchases == null) return 0;
+    final next = GameRules.applyPurchases(
+      state,
+      cauris: purchases.cauris,
+      premiumUntil: purchases.premiumUntil,
+      now: DateTime.now(),
+    );
+    if (!identical(next, state)) await _save(next);
+    if (purchases.cauris > 0) _analytics.track('purchase_delivered', {'cauris': purchases.cauris});
+    return purchases.cauris;
   }
 
   Future<void> setAvatar(AvatarConfig avatar) async {

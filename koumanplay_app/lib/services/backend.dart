@@ -305,7 +305,125 @@ class Backend {
     await _client!.auth.signInWithPassword(email: email, password: password);
   }
 
+  // ---------------------------------------------------------------- Boutique
+
+  /// Produits vendus en ligne (packs de cauris, KoumanPlay+).
+  Future<List<ShopProduct>?> fetchProducts() async {
+    final client = _client;
+    if (client == null) return null;
+    try {
+      final rows = await client.from('shop_products').select().eq('active', true).order('sort').timeout(_timeout);
+      return [for (final r in rows) ShopProduct.fromRow(r)];
+    } catch (e) {
+      debugPrint('Boutique indisponible : $e');
+      return null;
+    }
+  }
+
+  /// Demande un paiement GeniusPay (fonction create-payment) et renvoie le lien
+  /// de la page de paiement. [method] : wave, orange, mtn ou card.
+  Future<PaymentStart> createPayment(String productId, String method) async {
+    final client = _client;
+    if (client == null || !await ensureSession()) {
+      return const PaymentStart.failed('Connexion impossible. Vérifie ton accès à internet.');
+    }
+    try {
+      final res = await client.functions
+          .invoke('create-payment', body: {'product_id': productId, 'method': method})
+          .timeout(const Duration(seconds: 20));
+      final data = (res.data as Map).cast<String, dynamic>();
+      final url = data['checkout_url'] as String?;
+      final reference = data['reference'] as String?;
+      if (url == null || reference == null) {
+        return PaymentStart.failed(data['error'] as String? ?? 'Le paiement n\'a pas pu être créé.');
+      }
+      return PaymentStart(reference: reference, url: url);
+    } on FunctionException catch (e) {
+      final details = e.details;
+      final message = details is Map ? details['error'] as String? : null;
+      return PaymentStart.failed(message ?? 'Le paiement n\'a pas pu être créé.');
+    } catch (e) {
+      debugPrint('Paiement impossible : $e');
+      return const PaymentStart.failed('Le paiement n\'a pas pu être créé. Réessaie dans un instant.');
+    }
+  }
+
+  /// Statut d'un paiement : pending, completed, failed, cancelled, expired…
+  Future<String?> paymentStatus(String reference) async {
+    final client = _client;
+    if (client == null) return null;
+    try {
+      final row = await client.from('payments').select('status').eq('reference', reference).maybeSingle().timeout(_timeout);
+      return row?['status'] as String?;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Récupère les achats livrés : cauris payés (une seule fois) et date de fin
+  /// de KoumanPlay+.
+  Future<({int cauris, DateTime? premiumUntil})?> claimPurchases() async {
+    final client = _client;
+    if (client == null || client.auth.currentSession == null) return null;
+    try {
+      final data = (await client.rpc('claim_wallet_credits').timeout(_timeout) as Map).cast<String, dynamic>();
+      return (
+        cauris: (data['cauris'] as num?)?.toInt() ?? 0,
+        premiumUntil: DateTime.tryParse(data['premium_until'] as String? ?? ''),
+      );
+    } catch (e) {
+      debugPrint('Achats non récupérés : $e');
+      return null;
+    }
+  }
+
   Future<void> signOut() async {
     await _client?.auth.signOut();
   }
+}
+
+/// Produit vendu en ligne.
+class ShopProduct {
+  const ShopProduct({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.description,
+    required this.priceXof,
+    required this.cauris,
+    required this.premiumDays,
+  });
+
+  final String id;
+
+  /// 'cauris' ou 'premium'.
+  final String kind;
+  final String title;
+  final String description;
+  final int priceXof;
+  final int cauris;
+  final int premiumDays;
+
+  bool get isPremium => kind == 'premium';
+
+  factory ShopProduct.fromRow(Map<String, dynamic> r) => ShopProduct(
+    id: r['id'] as String,
+    kind: r['kind'] as String,
+    title: r['title'] as String,
+    description: r['description'] as String? ?? '',
+    priceXof: (r['price_xof'] as num).toInt(),
+    cauris: (r['cauris'] as num?)?.toInt() ?? 0,
+    premiumDays: (r['premium_days'] as num?)?.toInt() ?? 0,
+  );
+}
+
+/// Début d'un paiement : lien de la page GeniusPay, ou message d'erreur.
+class PaymentStart {
+  const PaymentStart({required this.reference, required this.url}) : error = null;
+
+  const PaymentStart.failed(String this.error) : reference = null, url = null;
+
+  final String? reference;
+  final String? url;
+  final String? error;
 }
