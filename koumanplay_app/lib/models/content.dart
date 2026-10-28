@@ -313,6 +313,27 @@ class CultureEvent {
       );
 }
 
+/// Encouragement enregistré par un aîné dans une langue (« bravo », « encore »),
+/// joué après le son d'une bonne réponse, d'une erreur ou d'une victoire.
+/// [kind] : 'correct', 'wrong' ou 'win'.
+class LanguageSound {
+  const LanguageSound({required this.languageId, required this.kind, required this.audio, this.text});
+
+  final String languageId;
+  final String kind;
+  final String audio;
+
+  /// Ce qui est dit, et sa traduction (affiché sous le son).
+  final String? text;
+
+  factory LanguageSound.fromJson(Map<String, dynamic> json) => LanguageSound(
+        languageId: json['languageId'] as String,
+        kind: json['kind'] as String,
+        audio: json['audio'] as String,
+        text: json['text'] as String?,
+      );
+}
+
 /// Réglages modifiables depuis Supabase, sans nouvelle version de l'app.
 class AppSettings {
   const AppSettings({this.eventMinDiamonds = 3, this.eventMinLevel = 2});
@@ -337,6 +358,7 @@ class ContentPack {
     required this.challenges,
     this.works = const [],
     this.events = const [],
+    this.sounds = const [],
     this.settings = const AppSettings(),
   });
 
@@ -353,7 +375,13 @@ class ContentPack {
 
   /// Triés par date de début.
   final List<CultureEvent> events;
+
+  /// Encouragements enregistrés par les aînés, par langue.
+  final List<LanguageSound> sounds;
   final AppSettings settings;
+
+  List<LanguageSound> soundsOf(String languageId, String kind) =>
+      sounds.where((s) => s.languageId == languageId && s.kind == kind).toList();
 
   factory ContentPack.fromJson(Map<String, dynamic> json) {
     List<T> list<T>(String key, T Function(Map<String, dynamic>) parse) =>
@@ -367,6 +395,7 @@ class ContentPack {
       challenges: list('challenges', Challenge.fromJson),
       works: list('works', CulturalWork.fromJson),
       events: list('events', CultureEvent.fromJson)..sort((a, b) => a.startsAt.compareTo(b.startsAt)),
+      sounds: list('sounds', LanguageSound.fromJson),
       settings: AppSettings.fromJson((json['settings'] as Map?)?.cast<String, dynamic>() ?? const {}),
     );
   }

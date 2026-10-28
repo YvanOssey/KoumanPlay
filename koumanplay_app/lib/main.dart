@@ -11,7 +11,9 @@ import 'models/content.dart';
 import 'services/backend.dart';
 import 'services/contributions.dart';
 import 'services/providers.dart';
+import 'services/reminders.dart';
 import 'widgets/common.dart';
+import 'widgets/flame.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +36,10 @@ Future<void> main() async {
   // sans réseau.
   container.read(analyticsProvider).track('app_open');
   container.read(contentProvider.notifier).refresh();
-  container.read(playerProvider.notifier).syncOnStart().then((_) => container.read(contributionsProvider.notifier).sync());
+  container
+      .read(playerProvider.notifier)
+      .syncOnStart()
+      .then((_) => container.read(contributionsProvider.notifier).sync());
 
   // Retour dans l'app (après être passé sur WhatsApp, par ex.) : on récupère
   // le contenu modifié dans Supabase et on envoie les événements en attente.
@@ -46,6 +51,8 @@ Future<void> main() async {
       // Retour de la page de paiement : les achats payés arrivent.
       container.read(playerProvider.notifier).refreshPurchases();
     },
+    // En quittant l'app : les relances suivent l'énergie et la flamme du moment.
+    onHide: () => container.read(remindersProvider).reschedule(container.read(playerProvider)),
   );
 
   runApp(UncontrolledProviderScope(container: container, child: const KoumanPlayApp()));
@@ -62,8 +69,10 @@ class KoumanPlayApp extends ConsumerWidget {
       theme: buildTheme(),
       routerConfig: ref.watch(routerProvider),
       // Le texte suit le réglage du téléphone, mais plafonné pour que les écrans ne cassent pas.
-      builder: (context, child) =>
-          MediaQuery.withClampedTextScaling(maxScaleFactor: 1.3, child: MobileFrame(child: child ?? const SizedBox())),
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.3,
+        child: MobileFrame(child: FlameCelebrationHost(child: child ?? const SizedBox())),
+      ),
     );
   }
 }

@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,18 +11,27 @@ import '../../core/lesson.dart';
 import '../../core/theme.dart';
 import '../../models/content.dart';
 import '../../services/providers.dart';
+import '../../services/reminders.dart';
 import '../../widgets/audio_button.dart';
 import '../../widgets/cauris.dart';
 import '../../widgets/common.dart';
 import '../../widgets/energy.dart';
+import '../../widgets/fx.dart';
+import '../../widgets/mascot.dart';
 
-/// Une partie : un niveau, ou un entraînement ([practice]) sur les questions
-/// ratées, sans perte d'énergie.
+/// [practice] : sur les questions ratées, sans perte d'énergie.
+/// [boss] : défi final d'une langue, chronométré.
+enum QuizMode { level, practice, boss }
+
+/// Une partie : un niveau, un entraînement ou un Boss.
 class QuizScreen extends ConsumerStatefulWidget {
-  const QuizScreen({super.key, required this.levelId, this.practice = false});
+  const QuizScreen({super.key, required this.levelId, this.mode = QuizMode.level});
 
+  /// Niveau joué ; pour un Boss, la langue.
   final String levelId;
-  final bool practice;
+  final QuizMode mode;
+
+  bool get practice => mode == QuizMode.practice;
 
   @override
   ConsumerState<QuizScreen> createState() => _QuizScreenState();
@@ -56,11 +69,76 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
   final _scroll = ScrollController();
 
+  /// Temps restant pour la question : imposé au Boss (temps écoulé = erreur),
+  /// indicatif dans un niveau (une réponse rapide rapporte un bonus éclair).
+  Timer? _clock;
+  int _secondsLeft = 0;
+  int _timeLimit = 0;
+  bool _timedOut = false;
+  final _answerTime = Stopwatch();
+
+  /// Animations : confettis (bonne réponse, victoire du Boss), secousse (erreur).
+  int _cheers = 0;
+  int _shakes = 0;
+  int _wins = 0;
+
+  bool get _timed => widget.mode == QuizMode.boss;
+  bool get _soft => widget.mode == QuizMode.level;
+
+  /// Mascotte : humeur, réaction (change à chaque réponse) et bulle.
+  MascotMood _mood = MascotMood.idle;
+  int _reaction = 0;
+  String? _bubble;
+  int _wrongStreak = 0;
+  final _rng = Random();
+
+  /// Bonnes réponses rapides (au moins la moitié du temps restant).
+  int _quick = 0;
+
+  static const _cheersText = ['Bravo !', 'Exactement !', 'Tu as l\'œil !', 'Les aînés seraient fiers !', 'Bien joué !'];
+  static const _comfort = ['Pas grave, lis bien l\'explication.', 'On apprend de ses erreurs !', 'Presque ! Tu y es.'];
+  static const _tips = [
+    'Lis tout le proverbe : son sens est souvent dans la deuxième moitié.',
+    'Nos proverbes parlent souvent de famille, de travail et de patience. Pense à la vie de tous les jours.',
+    'Écarte d\'abord les réponses qui prennent le proverbe au pied de la lettre.',
+    'Pas de panique : l\'entraînement te fait réviser sans perdre d\'énergie.',
+  ];
+
+  /// Seuls les niveaux et le Boss coûtent de l'énergie.
+  bool get _costsEnergy => widget.mode == QuizMode.level || widget.mode == QuizMode.boss;
+
   @override
   void dispose() {
+    _clock?.cancel();
     _scroll.dispose();
     _typed.dispose();
     super.dispose();
+  }
+
+  void _startClock() {
+    if ((!_timed && !_soft) || _questions.isEmpty) return;
+    _clock?.cancel();
+    _timeLimit = _current.isRecall
+        ? GameRules.bossRecallSeconds
+        : (_timed ? GameRules.bossSeconds : GameRules.levelSeconds);
+    _secondsLeft = _timeLimit;
+    _answerTime.start();
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _submitted) return;
+      setState(() => _secondsLeft--);
+      // Les dernières secondes s'entendent et se sentent.
+      if (_secondsLeft > 0 && _secondsLeft <= 5) {
+        ref.read(soundProvider).play('tick');
+        HapticFeedback.selectionClick();
+      }
+      if (_secondsLeft <= 0) {
+        if (_timed) {
+          _submit(timeUp: true);
+        } else {
+          _clock?.cancel();
+        }
+      }
+    });
   }
 
   @override
@@ -68,7 +146,13 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     super.initState();
     final content = ref.read(contentProvider);
     final player = ref.read(playerProvider);
-    if (widget.practice) {
+    if (widget.mode == QuizMode.boss) {
+      _level = null;
+      _language = content.language(widget.levelId);
+      final unlocked = _language != null && GameRules.isBossUnlocked(content, player, _language);
+      _questions = unlocked ? LessonBuilder.boss(content, widget.levelId) : const [];
+      _blocked = GameRules.energyAt(player, DateTime.now()) == 0;
+    } else if (widget.practice) {
       _level = null;
       _language = null;
       final passed = {
@@ -84,26 +168,53 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       _blocked = GameRules.energyAt(player, DateTime.now()) == 0;
     }
     _typed.addListener(() => setState(() {}));
-    ref.read(analyticsProvider).track(widget.practice ? 'practice_started' : 'level_started', {
-      'level': widget.levelId,
-    });
+    ref.read(analyticsProvider).track('${widget.mode.name}_started', {'level': widget.levelId});
+    if (!_blocked) _startClock();
   }
 
   LessonQuestion get _current => _questions[_index];
 
   bool get _canSubmit => _current.isRecall ? _typed.text.trim().isNotEmpty : _selected != null;
 
-  void _submit() {
+  /// [timeUp] : le temps de la question est écoulé, la réponse compte fausse.
+  void _submit({bool timeUp = false}) {
+    if (_submitted) return;
+    _clock?.cancel();
+    _answerTime.stop();
     final question = _current;
-    final correct = question.isRecall
-        ? TypedAnswer.matches(_typed.text, question.expected!)
-        : _selected == question.correct;
+    final correct =
+        !timeUp &&
+        (question.isRecall ? TypedAnswer.matches(_typed.text, question.expected!) : _selected == question.correct);
     // Décidé tout de suite, pour que « Question suivante » ne s'affiche pas
     // sur la dernière énergie.
-    final costsEnergy = !widget.practice && !correct;
+    final costsEnergy = _costsEnergy && !correct;
     final lastEnergy = costsEnergy && GameRules.energyAt(ref.read(playerProvider), DateTime.now()) <= 1;
+    ref
+        .read(soundProvider)
+        .cheer(
+          correct ? 'correct' : 'wrong',
+          content: ref.read(contentProvider),
+          languageId: _language?.id,
+          voiceChance: 0.35,
+        );
+    final quick = correct && _soft && _secondsLeft * 2 >= _timeLimit;
+    _wrongStreak = correct ? 0 : _wrongStreak + 1;
+    final tip = !correct && _wrongStreak >= 2;
+    HapticFeedback.lightImpact();
     setState(() {
+      if (correct) {
+        _cheers++;
+      } else {
+        _shakes++;
+      }
+      if (quick) _quick++;
+      _reaction++;
+      _mood = correct ? MascotMood.happy : MascotMood.sad;
+      _bubble = correct
+          ? (quick ? 'Éclair ! Réponse rapide.' : _cheersText[_rng.nextInt(_cheersText.length)])
+          : (timeUp ? 'Le temps est passé…' : _comfort[_rng.nextInt(_comfort.length)]);
       _submitted = true;
+      _timedOut = timeUp;
       _lastCorrect = correct;
       _seenIds.add(question.itemId);
       if (!correct) _missedIds.add(question.itemId);
@@ -117,9 +228,20 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       'correct': correct,
       'recall': question.isRecall,
       'hinted': _hinted,
-      'practice': widget.practice,
+      'mode': widget.mode.name,
+      'time_up': timeUp,
     });
     if (costsEnergy) ref.read(playerProvider.notifier).loseEnergy();
+    // Deux erreurs de suite : la mascotte donne un conseil.
+    if (tip) {
+      Timer(const Duration(milliseconds: 1100), () {
+        if (!mounted || !_submitted) return;
+        setState(() {
+          _mood = MascotMood.talk;
+          _bubble = _tips[_rng.nextInt(_tips.length)];
+        });
+      });
+    }
     // Fait apparaître l'explication si elle est sous le bas de l'écran.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
@@ -162,17 +284,37 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         _submitted = false;
         _revealed = 0;
         _hinted = false;
+        _timedOut = false;
         _typed.clear();
+        _mood = _questions[_index].isRecall ? MascotMood.think : MascotMood.idle;
+        _bubble = _questions[_index].isRecall ? 'Souviens-toi de la fin du proverbe…' : null;
       });
       _scroll.jumpTo(0);
+      _startClock();
       return;
     }
     setState(() => _finishing = true);
     final notifier = ref.read(playerProvider.notifier);
     final asked = {for (final q in _questions) q.itemId};
+    if (widget.mode == QuizMode.boss) {
+      final outcome = await notifier.completeBoss(widget.levelId, correct: _correctAnswers, total: _questions.length);
+      if (!mounted) return;
+      ref
+          .read(soundProvider)
+          .cheer(outcome.passed ? 'win' : 'lose', content: ref.read(contentProvider), languageId: widget.levelId);
+      if (outcome.passed) setState(() => _wins++);
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _BossDone(outcome: outcome),
+      );
+      if (mounted) context.pop();
+      return;
+    }
     if (widget.practice) {
       final outcome = await notifier.completePractice(askedIds: asked, correctIds: _seenIds.difference(_missedIds));
       if (!mounted) return;
+      ref.read(soundProvider).play('win');
       await showDialog<void>(
         context: context,
         builder: (_) => _PracticeDone(outcome: outcome),
@@ -187,7 +329,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       outOfEnergy: _outOfEnergy,
       correctAnswers: _correctAnswers,
       recallsWithoutHint: _recallsWithoutHint,
+      quickAnswers: _quick,
     );
+    // Après la première partie : autorisation des rappels de jeu.
+    ref.read(remindersProvider).askOnce();
     if (mounted) context.pushReplacement('/result', extra: outcome);
   }
 
@@ -196,7 +341,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Quitter la partie ?'),
-        content: const Text('Ta progression dans ce niveau ne sera pas enregistrée.'),
+        content: const Text('Ta progression ne sera pas enregistrée.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Continuer')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Quitter')),
@@ -208,18 +353,17 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_questions.isEmpty || (!widget.practice && _level == null)) {
+    if (_questions.isEmpty || (widget.mode == QuizMode.level && _level == null)) {
       return Scaffold(
         appBar: AppBar(),
         body: Padding(
           padding: const EdgeInsets.all(32),
           child: Center(
-            child: Text(
-              widget.practice
-                  ? 'Valide un premier niveau pour débloquer l\'entraînement.'
-                  : 'Ce niveau n\'est pas encore disponible.',
-              textAlign: TextAlign.center,
-            ),
+            child: Text(switch (widget.mode) {
+              QuizMode.practice => 'Valide un premier niveau pour débloquer l\'entraînement.',
+              QuizMode.boss => 'Valide tous les niveaux de cette langue pour affronter le Boss.',
+              QuizMode.level => 'Ce niveau n\'est pas encore disponible.',
+            }, textAlign: TextAlign.center),
           ),
         ),
       );
@@ -236,9 +380,11 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     final theme = Theme.of(context);
     final question = _current;
     final color = _language == null ? AppColors.purple500 : Color(_language.color);
-    final eyebrow = widget.practice
-        ? 'Entraînement · sans perte d\'énergie'
-        : '${_language?.name ?? ''} · Niveau ${_level!.order} · ${_level.kindLabel}';
+    final eyebrow = switch (widget.mode) {
+      QuizMode.practice => 'Entraînement · sans perte d\'énergie',
+      QuizMode.boss => '${_language?.name ?? ''} · Boss',
+      QuizMode.level => '${_language?.name ?? ''} · Niveau ${_level!.order} · ${_level.kindLabel}',
+    };
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -260,69 +406,116 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                     const SizedBox(width: 12),
                     Text('${_index + 1}/${_questions.length}', style: const TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(width: 10),
-                    const EnergyPill(showWait: false),
+                    _ScoreChip(score: _correctAnswers),
+                    const SizedBox(width: 8),
+                    if (widget.mode != QuizMode.practice) const EnergyPill(showWait: false),
                   ],
                 ),
               ),
+              if (_timed || _soft)
+                _TimeBar(secondsLeft: _secondsLeft, limit: _timeLimit, running: !_submitted && !_blocked, hard: _timed),
               Expanded(
-                child: ListView(
-                  controller: _scroll,
-                  padding: const EdgeInsets.all(AppSpacing.screen),
+                child: Stack(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(child: Eyebrow(eyebrow, color: color)),
-                        if (!widget.practice)
-                          Text(
-                            '+${question.xp} XP',
-                            style: const TextStyle(color: AppColors.green500, fontWeight: FontWeight.w600),
+                    Positioned.fill(
+                      child: ListView(
+                        controller: _scroll,
+                        padding: const EdgeInsets.all(AppSpacing.screen),
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(child: Eyebrow(eyebrow, color: color)),
+                              if (widget.mode == QuizMode.level)
+                                Text(
+                                  '+${question.xp} XP',
+                                  style: const TextStyle(color: AppColors.green500, fontWeight: FontWeight.w600),
+                                ),
+                            ],
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (question.isProverb) ...[
-                      _PromptCard(question: question),
-                      const SizedBox(height: 20),
-                      Text(question.instruction, style: theme.textTheme.titleLarge),
-                    ] else ...[
-                      Text(question.instruction, style: theme.textTheme.titleLarge),
-                      const SizedBox(height: 16),
-                      _PromptCard(question: question),
-                    ],
-                    const SizedBox(height: 16),
-                    if (question.isRecall)
-                      _RecallInput(
-                        controller: _typed,
-                        expected: question.expected!,
-                        revealed: _revealed,
-                        submitted: _submitted,
-                        correct: _lastCorrect,
-                        onSubmit: _canSubmit && !_submitted ? _submit : null,
-                        onHintLetter: () => _hint(word: false),
-                        onHintWord: () => _hint(word: true),
-                      )
-                    else
-                      for (var i = 0; i < question.answers.length; i++) ...[
-                        _AnswerTile(
-                          letter: String.fromCharCode(65 + i),
-                          text: question.answers[i],
-                          state: _answerState(i),
-                          onTap: _submitted ? null : () => setState(() => _selected = i),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                    if (_submitted)
-                      _Feedback(
-                        correct: _lastCorrect,
-                        question: question,
-                        outOfEnergy: _outOfEnergy,
-                        costsEnergy: !widget.practice,
+                          const SizedBox(height: 16),
+                          if (question.isProverb) ...[
+                            _PromptCard(question: question),
+                            const SizedBox(height: 20),
+                            Text(question.instruction, style: theme.textTheme.titleLarge),
+                          ] else ...[
+                            Text(question.instruction, style: theme.textTheme.titleLarge),
+                            const SizedBox(height: 16),
+                            _PromptCard(question: question),
+                          ],
+                          const SizedBox(height: 16),
+                          Shake(
+                            trigger: _shakes,
+                            child: question.isRecall
+                                ? _RecallInput(
+                                    controller: _typed,
+                                    expected: question.expected!,
+                                    revealed: _revealed,
+                                    submitted: _submitted,
+                                    correct: _lastCorrect,
+                                    onSubmit: _canSubmit && !_submitted ? _submit : null,
+                                    onHintLetter: () => _hint(word: false),
+                                    onHintWord: () => _hint(word: true),
+                                  )
+                                : Column(
+                                    children: [
+                                      for (var i = 0; i < question.answers.length; i++) ...[
+                                        _AnswerTile(
+                                          letter: String.fromCharCode(65 + i),
+                                          text: question.answers[i],
+                                          state: _answerState(i),
+                                          onTap: _submitted ? null : () => setState(() => _selected = i),
+                                        ),
+                                        const SizedBox(height: 10),
+                                      ],
+                                    ],
+                                  ),
+                          ),
+                          if (_submitted)
+                            _Feedback(
+                              correct: _lastCorrect,
+                              question: question,
+                              outOfEnergy: _outOfEnergy,
+                              costsEnergy: _costsEnergy,
+                              timedOut: _timedOut,
+                            ),
+                        ],
                       ),
+                    ),
+                    Positioned.fill(child: ConfettiBurst(trigger: _cheers)),
+                    Positioned.fill(child: ConfettiBurst(trigger: _wins, big: true)),
                   ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(AppSpacing.screen),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 4, AppSpacing.screen, 0),
+                child: SizedBox(
+                  height: 72,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Mascot(mood: _mood, reaction: _reaction, size: 64),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.bottomLeft,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            child: _bubble == null
+                                ? const SizedBox.shrink()
+                                : Padding(
+                                    key: ValueKey(_bubble),
+                                    padding: const EdgeInsets.only(bottom: 22),
+                                    child: MascotBubble(text: _bubble!),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 8, AppSpacing.screen, AppSpacing.screen),
                 child: FilledButton(
                   onPressed: _finishing
                       ? null
@@ -564,34 +757,41 @@ class _AnswerTile extends StatelessWidget {
       _AnswerState.wrong => (AppColors.error, AppColors.errorLight, AppColors.error),
     };
     final badgeText = state == _AnswerState.idle ? AppColors.gray700 : AppColors.white;
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(AppRadius.button),
-      child: InkWell(
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(state),
+      tween: Tween(begin: state == _AnswerState.correct ? 1.06 : 1, end: 1),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.elasticOut,
+      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+      child: Material(
+        color: background,
         borderRadius: BorderRadius.circular(AppRadius.button),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.button),
-            border: Border.all(color: border, width: 1.5),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: badge, borderRadius: BorderRadius.circular(8)),
-                child: Text(
-                  letter,
-                  style: TextStyle(color: badgeText, fontWeight: FontWeight.w700),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.button),
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.button),
+              border: Border.all(color: border, width: 1.5),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: badge, borderRadius: BorderRadius.circular(8)),
+                  child: Text(
+                    letter,
+                    style: TextStyle(color: badgeText, fontWeight: FontWeight.w700),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Text(text, style: const TextStyle(fontSize: 15))),
-            ],
+                const SizedBox(width: 12),
+                Expanded(child: Text(text, style: const TextStyle(fontSize: 15))),
+              ],
+            ),
           ),
         ),
       ),
@@ -605,11 +805,13 @@ class _Feedback extends StatelessWidget {
     required this.question,
     required this.outOfEnergy,
     required this.costsEnergy,
+    this.timedOut = false,
   });
 
   final bool correct;
   final LessonQuestion question;
   final bool outOfEnergy;
+  final bool timedOut;
 
   /// Entraînement : une erreur ne coûte pas d'énergie.
   final bool costsEnergy;
@@ -642,7 +844,7 @@ class _Feedback extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    correct ? 'Bonne réponse !' : 'Pas tout à fait',
+                    correct ? 'Bonne réponse !' : (timedOut ? 'Temps écoulé' : 'Pas tout à fait'),
                     style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                   if (!correct)
@@ -664,6 +866,157 @@ class _Feedback extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Fin d'un Boss : victoire ou non, récompenses et badge.
+class _BossDone extends StatelessWidget {
+  const _BossDone({required this.outcome});
+
+  final BossOutcome outcome;
+
+  @override
+  Widget build(BuildContext context) {
+    final questCauris = outcome.completedQuests.fold<int>(0, (s, q) => s + q.reward);
+    final cauris = outcome.cauris + questCauris;
+    final needed = (outcome.total * GameRules.bossPassRatio).ceil();
+    return AlertDialog(
+      icon: Icon(
+        outcome.passed ? Icons.emoji_events_rounded : Icons.shield_rounded,
+        color: outcome.passed ? AppColors.gold : AppColors.gray500,
+        size: 48,
+      ),
+      title: Text(outcome.passed ? 'Boss vaincu !' : 'Le Boss résiste'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            outcome.passed
+                ? '${outcome.correct} bonnes réponses sur ${outcome.total}.'
+                : '${outcome.correct} bonnes réponses sur ${outcome.total} : il en fallait $needed. Révise et reviens !',
+            textAlign: TextAlign.center,
+          ),
+          if (cauris > 0 || outcome.xpGained > 0) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (cauris > 0) ...[
+                  const CauriIcon(size: 20),
+                  Text(
+                    ' +$cauris',
+                    style: const TextStyle(fontWeight: FontWeight.w700, color: caurisColor),
+                  ),
+                ],
+                if (outcome.xpGained > 0) ...[
+                  const SizedBox(width: 16),
+                  Text(
+                    '+${outcome.xpGained} XP',
+                    style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.green500),
+                  ),
+                ],
+              ],
+            ),
+          ],
+          for (final b in outcome.newBadges) ...[
+            const SizedBox(height: 8),
+            Text('Nouveau badge : ${b.emoji} ${b.title}', textAlign: TextAlign.center),
+          ],
+        ],
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Retour à la carte'))],
+    );
+  }
+}
+
+/// Bonnes réponses de la partie : le chiffre rebondit à chaque point.
+class _ScoreChip extends StatelessWidget {
+  const _ScoreChip({required this.score});
+
+  final int score;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(score),
+      tween: Tween(begin: score == 0 ? 1 : 1.35, end: 1),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.elasticOut,
+      builder: (context, s, child) => Transform.scale(scale: s, child: child),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(color: AppColors.green100, borderRadius: BorderRadius.circular(999)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_rounded, size: 16, color: AppColors.green500),
+            const SizedBox(width: 2),
+            Text(
+              '$score',
+              style: const TextStyle(color: AppColors.green500, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Barre de temps qui se vide ; les 5 dernières secondes, elle rougit et bat.
+class _TimeBar extends StatelessWidget {
+  const _TimeBar({required this.secondsLeft, required this.limit, required this.running, required this.hard});
+
+  final int secondsLeft;
+  final int limit;
+  final bool running;
+
+  /// Boss : temps imposé (affiché en secondes).
+  final bool hard;
+
+  @override
+  Widget build(BuildContext context) {
+    final fraction = limit == 0 ? 0.0 : (secondsLeft / limit).clamp(0.0, 1.0);
+    final urgent = running && secondsLeft <= 5;
+    final color = urgent ? AppColors.error : (fraction > 0.5 ? AppColors.green500 : AppColors.gold);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 8, AppSpacing.screen, 0),
+      child: Row(
+        children: [
+          TweenAnimationBuilder<double>(
+            key: ValueKey(urgent ? secondsLeft : -1),
+            tween: Tween(begin: urgent ? 1.4 : 1, end: 1),
+            duration: const Duration(milliseconds: 400),
+            builder: (context, s, child) => Transform.scale(scale: s, child: child),
+            child: Icon(running ? Icons.timer_rounded : Icons.timer_off_rounded, size: 18, color: color),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(end: running ? fraction : fraction),
+                duration: const Duration(milliseconds: 950),
+                builder: (context, v, _) => LinearProgressIndicator(
+                  value: v,
+                  minHeight: urgent ? 10 : 7,
+                  color: color,
+                  backgroundColor: color.withValues(alpha: 0.15),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 34,
+            child: Text(
+              hard || urgent ? '$secondsLeft s' : (secondsLeft * 2 >= limit ? '⚡' : ''),
+              textAlign: TextAlign.end,
+              style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: urgent ? 15 : 13),
+            ),
+          ),
+        ],
       ),
     );
   }

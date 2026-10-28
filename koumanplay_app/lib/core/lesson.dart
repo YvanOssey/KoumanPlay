@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../models/content.dart';
+import 'game_rules.dart';
 
 /// Une question affichée dans l'écran de jeu, quel que soit le type de niveau.
 class LessonQuestion {
@@ -242,6 +243,32 @@ class LessonBuilder {
       for (final a in [...review, ...extra].take(maxQuestions))
         _activity(a, rng, isProverb: content.level(a.levelId)?.kind == LevelKind.proverbes),
     ];
+  }
+
+  /// Boss : questions mélangées de tous les niveaux jouables d'une langue,
+  /// puis des rappels écrits s'il y a des proverbes.
+  static List<LessonQuestion> boss(ContentPack content, String languageId, {Random? random}) {
+    final rng = random ?? Random();
+    final language = content.language(languageId)?.name ?? 'langue locale';
+    final proverbs = <Activity>[];
+    final questions = <LessonQuestion>[];
+    for (final level in content.playableLevelsOf(languageId)) {
+      if (level.hasActivities) {
+        final isProverb = level.kind == LevelKind.proverbes;
+        for (final a in content.activitiesOf(level.id)) {
+          questions.add(_activity(a, rng, isProverb: isProverb));
+          if (isProverb) proverbs.add(a);
+        }
+      } else {
+        final words = content.wordsOf(level.id);
+        for (final w in words) {
+          questions.add(_word(w, words, language, toLocal: rng.nextBool(), rng: rng));
+        }
+      }
+    }
+    questions.shuffle(rng);
+    final recalls = _recalls(proverbs, rng);
+    return [...questions.take(GameRules.bossQuestions - recalls.length), ...recalls];
   }
 
   /// [toLocal] : le joueur voit le français et choisit la traduction locale,

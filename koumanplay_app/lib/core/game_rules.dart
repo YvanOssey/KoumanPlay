@@ -15,8 +15,7 @@ class GameRules {
   /// Enregistre une transmission d'aîné : XP, compteur, série, badges.
   static ChallengeOutcome recordTransmission(ContentPack content, PlayerState player, String kind, DateTime now) {
     final xpGained = transmissionXp[kind] ?? 10;
-    var next = player.copyWith(
-      xp: player.xp + xpGained,
+    var next = gainXp(player, xpGained, now).copyWith(
       transmitted: {...player.transmitted, kind: (player.transmitted[kind] ?? 0) + 1},
       updatedAt: now,
     );
@@ -89,6 +88,11 @@ class GameRules {
   static const chestPerStar = 5;
   static const chestReplay = 2;
 
+  /// Niveau : temps indicatif par question. Une bonne réponse donnée avant la
+  /// moitié du temps est un « éclair » : 1 cauri de plus si le niveau est validé.
+  static const levelSeconds = 20;
+  static const quickCauris = 1;
+
   /// Entraînement terminé : 3 cauris et 1 énergie.
   static const practiceCauris = 3;
   static const practiceEnergy = 1;
@@ -112,6 +116,18 @@ class GameRules {
         : premiumUntil;
     if (cauris == 0 && until == player.premiumUntil) return player;
     return player.copyWith(cauris: player.cauris + cauris, premiumUntil: until, updatedAt: now);
+  }
+
+  /// Livraison d'un achat simulé (boutique de démonstration) : les jours de
+  /// KoumanPlay+ s'ajoutent à l'abonnement en cours.
+  static PlayerState applyDemoPurchase(PlayerState player, {required int cauris, required int premiumDays, required DateTime now}) {
+    final current = isPremium(player, now) ? player.premiumUntil! : now;
+    return applyPurchases(
+      player,
+      cauris: cauris,
+      premiumUntil: premiumDays > 0 ? current.add(Duration(days: premiumDays)) : null,
+      now: now,
+    );
   }
 
   /// Dépense des cauris ; null s'il n'y en a pas assez.
@@ -201,6 +217,129 @@ class GameRules {
       completedQuests: quests,
     );
   }
+
+  // ---------------------------------------------------------------- Boss
+
+  /// Défi final d'une langue, ouvert quand tous ses niveaux sont validés :
+  /// des questions de tous les niveaux, chronométrées.
+  static const bossQuestions = 12;
+  static const bossPassRatio = 0.8;
+  static const bossSeconds = 20;
+
+  /// Rappel écrit : plus de temps pour taper.
+  static const bossRecallSeconds = 45;
+  static const bossFirstCauris = 50;
+  static const bossReplayCauris = 5;
+  static const bossXp = 100;
+
+  static bool isBossUnlocked(ContentPack content, PlayerState player, Language language) =>
+      isLanguageCompleted(content, player, language);
+
+  /// Fin d'un Boss : la première victoire rapporte XP, cauris et badge ; les
+  /// suivantes quelques cauris. [correct] / [total] : questions réussies / posées.
+  static BossOutcome completeBoss({
+    required ContentPack content,
+    required PlayerState player,
+    required String languageId,
+    required int correct,
+    required int total,
+    required DateTime now,
+  }) {
+    final passed = total > 0 && correct / total >= bossPassRatio;
+    final firstWin = passed && !player.bossesBeaten.contains(languageId);
+    final cauris = (firstWin ? bossFirstCauris : (passed ? bossReplayCauris : 0)) * (isPremium(player, now) ? 2 : 1);
+    final xpGained = firstWin ? bossXp : 0;
+    var next = gainXp(player, xpGained, now).copyWith(
+      cauris: player.cauris + cauris,
+      bossesBeaten: passed ? {...player.bossesBeaten, languageId} : player.bossesBeaten,
+      updatedAt: now,
+    );
+    next = touchStreak(next, now);
+    final List<QuestDef> quests;
+    (next, quests) = progressQuests(next, now, {'niveaux': passed ? 1 : 0, 'reponses': correct});
+    final newBadges = evaluateBadges(content, next);
+    next = next.copyWith(badges: {...next.badges, ...newBadges.map((b) => b.id)});
+    return BossOutcome(
+      player: next,
+      passed: passed,
+      firstWin: firstWin,
+      correct: correct,
+      total: total,
+      cauris: cauris,
+      xpGained: xpGained,
+      completedQuests: quests,
+      newBadges: newBadges,
+    );
+  }
+
+  // ---------------------------------------------------------------- Ligues
+
+  /// Ligues, de la première à la plus haute. Chaque semaine, les joueurs sont
+  /// classés par groupes de 20 selon l'XP gagné.
+  static const leagues = ['Bronze', 'Argent', 'Or', 'Baobab'];
+  static const leagueMove = 5;
+  static const leagueRewards = [30, 20, 10];
+
+  static String leagueName(int tier) => leagues[tier.clamp(0, leagues.length - 1)];
+
+  /// Semaine ISO en temps universel (« 2026-W44 »), comme le serveur.
+  static String weekKey(DateTime date) {
+    final utc = date.toUtc();
+    final day = DateTime.utc(utc.year, utc.month, utc.day);
+    final thursday = day.add(Duration(days: DateTime.thursday - day.weekday));
+    final week = 1 + thursday.difference(DateTime.utc(thursday.year)).inDays ~/ 7;
+    return '${thursday.year}-W${week.toString().padLeft(2, '0')}';
+  }
+
+  /// Fin de la semaine de ligue : lundi suivant à 0 h (temps universel).
+  static DateTime weekEnd(DateTime date) {
+    final utc = date.toUtc();
+    return DateTime.utc(utc.year, utc.month, utc.day).add(Duration(days: 8 - utc.weekday));
+  }
+
+  /// XP gagné : compte aussi pour la ligue de la semaine.
+  static PlayerState gainXp(PlayerState player, int amount, DateTime now) {
+    final week = weekKey(now);
+    return player.copyWith(
+      xp: player.xp + amount,
+      weekKey: week,
+      weekXp: (player.weekKey == week ? player.weekXp : 0) + amount,
+    );
+  }
+
+  static int weeklyXp(PlayerState player, DateTime now) => player.weekKey == weekKey(now) ? player.weekXp : 0;
+
+  /// Récompense du podium de la semaine [week] (30, 20, 10 cauris), donnée
+  /// une seule fois ; null si elle a déjà été reçue.
+  static PlayerState? claimLeagueReward(PlayerState player, {required String week, required int rank, required int points, required DateTime now}) {
+    if (player.leagueRewardWeek == week) return null;
+    final reward = points > 0 && rank >= 1 && rank <= leagueRewards.length ? leagueRewards[rank - 1] : 0;
+    return player.copyWith(cauris: player.cauris + reward, leagueRewardWeek: week, updatedAt: now);
+  }
+
+  // ---------------------------------------------------------------- Duels
+
+  /// Duels en direct (Tir à la corde, Paires express) : cauris selon le
+  /// résultat, sans énergie ni XP.
+  static const duelWinCauris = 10;
+  static const duelDrawCauris = 5;
+  static const duelPlayCauris = 2;
+
+  /// Récompense d'un duel terminé, une seule fois ; null si déjà reçue.
+  static PlayerState? claimDuelReward(PlayerState player, String duelId, DuelVerdict verdict, DateTime now) {
+    if (player.duelsRewarded.contains(duelId)) return null;
+    return player.copyWith(
+      cauris: player.cauris + duelReward(verdict),
+      duelsRewarded: {...player.duelsRewarded, duelId},
+      updatedAt: now,
+    );
+  }
+
+  static int duelReward(DuelVerdict verdict) => switch (verdict) {
+    DuelVerdict.win => duelWinCauris,
+    DuelVerdict.draw => duelDrawCauris,
+    DuelVerdict.loss => duelPlayCauris,
+  };
 
   static int xpIntoLevel(int xp) => xp % xpPerPlayerLevel;
 
@@ -295,12 +434,61 @@ class GameRules {
       '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   /// Met à jour la série de jours consécutifs.
+  /// Un jour manqué : un protège-flamme, s'il y en a un, sauve la série.
   static PlayerState touchStreak(PlayerState player, DateTime now) {
     final today = dayKey(now);
     if (player.lastActiveDay == today) return player;
     final yesterday = dayKey(now.subtract(const Duration(days: 1)));
-    final streak = player.lastActiveDay == yesterday ? player.streak + 1 : 1;
-    return player.copyWith(streak: streak, lastActiveDay: today);
+    final dayBefore = dayKey(now.subtract(const Duration(days: 2)));
+    if (player.lastActiveDay == yesterday) {
+      return player.copyWith(streak: player.streak + 1, lastActiveDay: today);
+    }
+    if (player.lastActiveDay == dayBefore && player.flameShields > 0) {
+      return player.copyWith(streak: player.streak + 1, lastActiveDay: today, flameShields: player.flameShields - 1);
+    }
+    return player.copyWith(streak: 1, lastActiveDay: today);
+  }
+
+  // ---------------------------------------------------------------- Flamme du savoir
+
+  /// Paliers de la flamme (jours d'affilée) et leurs cauris.
+  static const flameMilestones = {3: 0, 7: 20, 30: 100, 100: 300};
+  static const flameShieldPrice = 50;
+  static const flameShieldMax = 2;
+
+  /// Série affichée : elle tient tant que le joueur a joué hier ou aujourd'hui
+  /// (ou avant-hier avec un protège-flamme).
+  static int flameOf(PlayerState player, DateTime now) {
+    final last = player.lastActiveDay;
+    if (last == dayKey(now) || last == dayKey(now.subtract(const Duration(days: 1)))) return player.streak;
+    if (last == dayKey(now.subtract(const Duration(days: 2))) && player.flameShields > 0) return player.streak;
+    return 0;
+  }
+
+  /// La flamme est déjà nourrie aujourd'hui.
+  static bool isFlameFed(PlayerState player, DateTime now) => player.lastActiveDay == dayKey(now);
+
+  /// 0 : flamme simple, 1 : 7 jours, 2 : dorée (30), 3 : éternelle (100).
+  static int flameTier(int streak) => streak >= 100 ? 3 : (streak >= 30 ? 2 : (streak >= 7 ? 1 : 0));
+
+  /// Paliers atteints et pas encore fêtés : leurs cauris sont ajoutés.
+  static (PlayerState, List<int>) claimFlameMilestones(PlayerState player) {
+    final reached = [
+      for (final m in flameMilestones.keys)
+        if (player.streak >= m && !player.flameClaimed.contains(m)) m,
+    ];
+    if (reached.isEmpty) return (player, const []);
+    final cauris = reached.fold<int>(0, (sum, m) => sum + flameMilestones[m]!);
+    return (
+      player.copyWith(cauris: player.cauris + cauris, flameClaimed: {...player.flameClaimed, ...reached}),
+      reached,
+    );
+  }
+
+  /// Achète un protège-flamme ; null s'il manque des cauris ou si la réserve est pleine.
+  static PlayerState? buyFlameShield(PlayerState player, DateTime now) {
+    if (player.flameShields >= flameShieldMax) return null;
+    return spendCauris(player, flameShieldPrice, now)?.copyWith(flameShields: player.flameShields + 1);
   }
 
   /// Applique la fin d'un niveau. [askedIds] = éléments posés pendant la
@@ -317,6 +505,7 @@ class GameRules {
     bool outOfEnergy = false,
     int correctAnswers = 0,
     int recallsWithoutHint = 0,
+    int quickAnswers = 0,
   }) {
     final level = content.level(levelId)!;
     final items = content.itemsOf(levelId).where((i) => askedIds.contains(i.id)).toList();
@@ -337,6 +526,7 @@ class GameRules {
             ? chestPerStar * (runStars - previousStars)
             : chestReplay) *
         (isPremium(player, now) ? 2 : 1);
+    final quick = passed ? quickAnswers * quickCauris : 0;
     final result = LevelResult(
       bestCorrect: previous == null || correct > previous.bestCorrect ? correct : previous.bestCorrect,
       total: total,
@@ -345,11 +535,10 @@ class GameRules {
 
     final challengesBefore = challengesFor(content, player).where((c) => isChallengeUnlocked(player, c)).map((c) => c.id).toSet();
 
-    var next = player.copyWith(
-      xp: player.xp + xpGained,
+    var next = gainXp(player, xpGained, now).copyWith(
       levels: {...player.levels, levelId: result},
       masteredActivities: {...player.masteredActivities, ...newlyMastered.map((a) => a.id)},
-      cauris: player.cauris + chest,
+      cauris: player.cauris + chest + quick,
       // Les ratés vont dans l'entraînement ; ce qui est réussi en sort.
       toReview: {
         ...player.toReview.difference(correctIds),
@@ -384,6 +573,7 @@ class GameRules {
       stars: runStars,
       previousStars: previousStars,
       chestCauris: chest,
+      quickCauris: quick,
       completedQuests: quests,
       newBadges: newBadges,
       unlockedChallenges: unlocked,
@@ -411,8 +601,7 @@ class GameRules {
       completedAt: previous?.completedAt ?? now,
     );
     final xpGained = alreadyDone ? 0 : challenge.rewardXp;
-    var next = player.copyWith(
-      xp: player.xp + xpGained,
+    var next = gainXp(player, xpGained, now).copyWith(
       challenges: {...player.challenges, challengeId: progress},
       updatedAt: now,
     );
@@ -440,6 +629,10 @@ class GameRules {
       if (player.transmittedTotal >= 1) 'premiere-transmission',
       if (player.transmittedTotal >= 10) 'gardien-de-la-parole',
       if ((player.transmitted['conte'] ?? 0) >= 1) 'conteur',
+      if (player.bossesBeaten.isNotEmpty) 'vainqueur-boss',
+      if (player.streak >= 7) 'flamme-7',
+      if (player.streak >= 30) 'flamme-30',
+      if (player.streak >= 100) 'flamme-100',
     };
     return badges.where((b) => earned.contains(b.id) && !player.badges.contains(b.id)).toList();
   }
@@ -455,7 +648,39 @@ class GameRules {
     BadgeDef('premiere-transmission', 'Passeur de savoir', 'Transmets ton premier mot, proverbe ou conte.', '🎤'),
     BadgeDef('gardien-de-la-parole', 'Gardien de la parole', 'Transmets 10 savoirs.', '🏅'),
     BadgeDef('conteur', 'Conteur', 'Raconte ton premier conte.', '📖'),
+    BadgeDef('vainqueur-boss', 'Vainqueur du Boss', 'Bats le Boss d\'une langue.', '👑'),
+    BadgeDef('flamme-7', 'Gardien de la flamme', 'Garde ta flamme du savoir allumée 7 jours.', '🔥'),
+    BadgeDef('flamme-30', 'Flamme dorée', 'Garde ta flamme allumée 30 jours.', '✨'),
+    BadgeDef('flamme-100', 'Flamme éternelle', 'Garde ta flamme allumée 100 jours.', '🌟'),
   ];
+}
+
+enum DuelVerdict { win, loss, draw }
+
+class BossOutcome {
+  const BossOutcome({
+    required this.player,
+    required this.passed,
+    required this.firstWin,
+    required this.correct,
+    required this.total,
+    required this.cauris,
+    required this.xpGained,
+    required this.completedQuests,
+    required this.newBadges,
+  });
+
+  final PlayerState player;
+  final bool passed;
+
+  /// Première victoire contre ce Boss.
+  final bool firstWin;
+  final int correct;
+  final int total;
+  final int cauris;
+  final int xpGained;
+  final List<QuestDef> completedQuests;
+  final List<BadgeDef> newBadges;
 }
 
 class BadgeDef {
@@ -482,6 +707,7 @@ class LevelOutcome {
     this.stars = 0,
     this.previousStars = 0,
     this.chestCauris = 0,
+    this.quickCauris = 0,
     this.completedQuests = const [],
   });
 
@@ -503,6 +729,9 @@ class LevelOutcome {
 
   /// Cauris du coffre de fin de niveau.
   final int chestCauris;
+
+  /// Bonus éclair : cauris des bonnes réponses rapides.
+  final int quickCauris;
 
   /// Quêtes du jour terminées pendant cette partie (leurs cauris sont déjà
   /// ajoutés au joueur).

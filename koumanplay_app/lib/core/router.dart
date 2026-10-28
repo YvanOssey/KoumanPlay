@@ -19,10 +19,17 @@ import '../features/profile/avatar_editor_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/shell/main_shell.dart';
 import '../features/shop/shop_screen.dart';
+import '../features/social/duel_game_screen.dart';
+import '../features/social/duels_screen.dart';
+import '../features/social/league_screen.dart';
+import '../services/duel_session.dart';
 import '../services/providers.dart';
+import 'duel_games.dart';
 import 'game_rules.dart';
 
 const _publicRoutes = {'/', '/onboarding', '/setup'};
+
+DuelMode _duelMode(Object? extra) => extra is DuelMode ? extra : DuelMode.corde;
 
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
@@ -45,15 +52,28 @@ final routerProvider = Provider<GoRouter>((ref) {
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => MainShell(shell: shell),
         branches: [
-          StatefulShellBranch(routes: [GoRoute(path: '/play', builder: (context, state) => const _FirstTab())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/challenges', builder: (context, state) => const ChallengesScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/library', builder: (context, state) => const LibraryScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/events', builder: (context, state) => const EventsScreen())]),
-          StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())]),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/play', builder: (context, state) => const _FirstTab())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/challenges', builder: (context, state) => const ChallengesScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/library', builder: (context, state) => const LibraryScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/events', builder: (context, state) => const EventsScreen())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen())],
+          ),
         ],
       ),
       // Carte ouverte depuis l'espace Transmettre d'un aîné.
-      GoRoute(path: '/carte', builder: (context, state) => const Scaffold(body: MapScreen(showBack: true))),
+      GoRoute(
+        path: '/carte',
+        builder: (context, state) => const Scaffold(body: MapScreen(showBack: true)),
+      ),
       GoRoute(
         path: '/library/:id',
         builder: (context, state) => WorkDetailScreen(workId: state.pathParameters['id']!),
@@ -81,7 +101,32 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/account', builder: (context, state) => const AccountScreen()),
       GoRoute(path: '/avatar', builder: (context, state) => const AvatarEditorScreen()),
       GoRoute(path: '/boutique', builder: (context, state) => const ShopScreen()),
-      GoRoute(path: '/entrainement', builder: (context, state) => const QuizScreen(levelId: 'entrainement', practice: true)),
+      GoRoute(
+        path: '/entrainement',
+        builder: (context, state) => const QuizScreen(levelId: 'entrainement', mode: QuizMode.practice),
+      ),
+      GoRoute(
+        path: '/boss/:languageId',
+        builder: (context, state) => QuizScreen(levelId: state.pathParameters['languageId']!, mode: QuizMode.boss),
+      ),
+      GoRoute(path: '/ligue', builder: (context, state) => const LeagueScreen()),
+      GoRoute(path: '/duels', builder: (context, state) => const DuelsScreen()),
+      GoRoute(
+        path: '/duel/recherche',
+        builder: (context, state) => MatchmakingScreen(mode: _duelMode(state.extra)),
+      ),
+      GoRoute(
+        path: '/duel/ami',
+        builder: (context, state) => FriendRoomScreen(mode: _duelMode(state.extra)),
+      ),
+      GoRoute(
+        path: '/duel/partie',
+        builder: (context, state) {
+          final setup = state.extra;
+          if (setup is! MatchSetup) return const _Redirect('/duels');
+          return DuelGameScreen(setup: setup);
+        },
+      ),
       GoRoute(
         path: '/transmettre/accord',
         builder: (context, state) => ConsentScreen(next: state.uri.queryParameters['next'] ?? '/play'),

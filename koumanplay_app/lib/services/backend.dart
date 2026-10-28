@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config.dart';
 import '../models/contribution.dart';
 import '../models/player.dart';
+import '../models/social.dart';
 
 /// Accès à Supabase. Toutes les méthodes échouent en silence (retournent
 /// null/false) quand le backend n'est pas configuré ou que le réseau manque :
@@ -89,6 +90,7 @@ class Backend {
         optional(client.from('works').select().eq('published', true).order('sort', ascending: true)),
         optional(client.from('culture_events').select().eq('published', true).order('starts_at', ascending: true)),
         optional(client.from('app_settings').select()),
+        optional(client.from('language_sounds').select().eq('published', true)),
       ]);
       return {
         'works': [
@@ -125,6 +127,10 @@ class Backend {
             },
         ],
         'settings': {for (final s in extras[2]) s['key']: s['value']},
+        'sounds': [
+          for (final s in extras[3])
+            {'languageId': s['language_id'], 'kind': s['kind'], 'audio': s['audio'], 'text': s['text']},
+        ],
         'version': 0,
         'languages': results[0],
         'levels': [
@@ -377,6 +383,119 @@ class Backend {
     }
   }
 
+  // ---------------------------------------------------------------- Ligues
+
+  /// Envoie l'XP de la semaine et renvoie le groupe de ligue du joueur
+  /// (migration 0007). Null hors connexion.
+  Future<LeagueBoard?> syncLeague({required String week, required int points, required String name, required Map<String, dynamic> avatar}) async {
+    final client = _client;
+    if (client == null || !await ensureSession()) return null;
+    try {
+      final data = await client
+          .rpc('league_sync', params: {'p_week': week, 'p_points': points, 'p_name': name, 'p_avatar': avatar})
+          .timeout(_timeout);
+      return LeagueBoard.fromJson((data as Map).cast<String, dynamic>());
+    } catch (e) {
+      debugPrint('Ligue indisponible : $e');
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------- Duels en direct
+
+  /// Cherche un adversaire inconnu (migration 0008). Renvoie la partie dès
+  /// qu'un joueur est trouvé, null tant que le joueur attend en file.
+  Future<LiveMatch?> matchFind({required String mode, required String languageId, required String name, required Map<String, dynamic> avatar}) async {
+    final client = _client;
+    if (client == null || !await ensureSession()) return null;
+    try {
+      final row = await client
+          .rpc('match_find', params: {'p_mode': mode, 'p_language': languageId, 'p_name': name, 'p_avatar': avatar})
+          .timeout(_timeout);
+      return row is Map && row['id'] != null ? LiveMatch.fromRow(row.cast<String, dynamic>(), user?.id) : null;
+    } catch (e) {
+      debugPrint('Recherche d\'adversaire impossible : $e');
+      return null;
+    }
+  }
+
+  Future<void> matchLeave() async {
+    try {
+      await _client?.rpc('match_leave').timeout(_timeout);
+    } catch (e) {
+      debugPrint('File d\'attente non quittée : $e');
+    }
+  }
+
+  /// Défi entre amis : crée une partie avec un code à partager.
+  Future<LiveMatch?> roomCreate({required String mode, required String languageId, required String name, required Map<String, dynamic> avatar}) async {
+    final client = _client;
+    if (client == null || !await ensureSession()) return null;
+    try {
+      final row = await client
+          .rpc('room_create', params: {'p_mode': mode, 'p_language': languageId, 'p_name': name, 'p_avatar': avatar})
+          .timeout(_timeout);
+      return LiveMatch.fromRow((row as Map).cast<String, dynamic>(), user?.id);
+    } catch (e) {
+      debugPrint('Défi non créé : $e');
+      return null;
+    }
+  }
+
+  /// Rejoint le défi d'un ami avec son code. Renvoie la partie, ou un message.
+  Future<({LiveMatch? match, String? error})> roomJoin(String code, {required String name, required Map<String, dynamic> avatar}) async {
+    final client = _client;
+    if (client == null || !await ensureSession()) {
+      return (match: null, error: 'Connexion impossible. Vérifie ton accès à internet.');
+    }
+    try {
+      final row = await client
+          .rpc('room_join', params: {'p_code': code, 'p_name': name, 'p_avatar': avatar})
+          .timeout(_timeout);
+      return (match: LiveMatch.fromRow((row as Map).cast<String, dynamic>(), user?.id), error: null);
+    } on PostgrestException catch (e) {
+      final message = e.message;
+      return (
+        match: null,
+        error: message.contains('introuvable')
+            ? 'Ce code ne correspond à aucun duel.'
+            : message.contains('propre')
+            ? 'C\'est ton propre code : envoie-le à un ami.'
+            : message.contains('déjà pris')
+            ? 'Ce duel a déjà un adversaire.'
+            : message.contains('expiré')
+            ? 'Ce code a expiré. Demande à ton ami d\'en créer un nouveau.'
+            : 'Impossible de rejoindre ce duel pour le moment.',
+      );
+    } catch (e) {
+      debugPrint('Défi non rejoint : $e');
+      return (match: null, error: 'Connexion impossible. Vérifie ton accès à internet.');
+    }
+  }
+
+  Future<LiveMatch?> fetchMatch(String id) async {
+    final client = _client;
+    if (client == null) return null;
+    try {
+      final row = await client.from('live_matches').select().eq('id', id).maybeSingle().timeout(_timeout);
+      return row == null ? null : LiveMatch.fromRow(row, user?.id);
+    } catch (e) {
+      debugPrint('Partie indisponible : $e');
+      return null;
+    }
+  }
+
+  Future<void> matchFinish(String id, {required int score, required bool won}) async {
+    try {
+      await _client?.rpc('match_finish', params: {'p_id': id, 'p_score': score, 'p_won': won}).timeout(_timeout);
+    } catch (e) {
+      debugPrint('Résultat non envoyé : $e');
+    }
+  }
+
+  /// Canal temps réel d'une partie : les deux joueurs s'y envoient leur score.
+  RealtimeChannel? duelChannel(String matchId) => _client?.channel('duel:$matchId');
+
   Future<void> signOut() async {
     await _client?.auth.signOut();
   }
@@ -405,6 +524,23 @@ class ShopProduct {
   final int premiumDays;
 
   bool get isPremium => kind == 'premium';
+
+  /// Mêmes offres que la migration 0006 : affichées quand le serveur ne répond
+  /// pas, et dans la version de démonstration.
+  static const catalog = [
+    ShopProduct(id: 'cauris-100', kind: 'cauris', title: 'Petit sac de cauris', description: '100 cauris', priceXof: 500, cauris: 100, premiumDays: 0),
+    ShopProduct(id: 'cauris-250', kind: 'cauris', title: 'Sac de cauris', description: '250 cauris (25 offerts)', priceXof: 1000, cauris: 250, premiumDays: 0),
+    ShopProduct(id: 'cauris-700', kind: 'cauris', title: 'Grand sac de cauris', description: '700 cauris (200 offerts)', priceXof: 2500, cauris: 700, premiumDays: 0),
+    ShopProduct(
+      id: 'plus-30',
+      kind: 'premium',
+      title: 'KoumanPlay+ · 30 jours',
+      description: 'Énergie illimitée et coffres doublés pendant 30 jours',
+      priceXof: 1000,
+      cauris: 0,
+      premiumDays: 30,
+    ),
+  ];
 
   factory ShopProduct.fromRow(Map<String, dynamic> r) => ShopProduct(
     id: r['id'] as String,

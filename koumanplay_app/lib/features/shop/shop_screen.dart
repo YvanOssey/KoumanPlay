@@ -14,7 +14,7 @@ import '../../widgets/common.dart';
 import '../../widgets/links.dart';
 
 final shopProductsProvider = FutureProvider.autoDispose<List<ShopProduct>?>(
-  (ref) => ref.read(backendProvider).fetchProducts(),
+  (ref) => AppConfig.demoShop ? Future.value(ShopProduct.catalog) : ref.read(backendProvider).fetchProducts(),
 );
 
 const _months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
@@ -37,8 +37,15 @@ class ShopScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final now = DateTime.now();
     final premium = GameRules.isPremium(player, now);
-    final canPay = AppConfig.paymentsInApp && backend.enabled;
+    const demo = AppConfig.demoShop;
     final products = ref.watch(shopProductsProvider);
+    final live = switch (products) {
+      AsyncData(value: final list?) when list.isNotEmpty => list,
+      _ => null,
+    };
+    // Sans réponse du serveur, les offres restent visibles mais pas achetables.
+    final preview = !demo && live == null;
+    final list = live ?? ShopProduct.catalog;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Boutique')),
@@ -91,8 +98,25 @@ class ShopScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            if (canPay) ...[
-              if (backend.isAnonymous) ...[
+            if (AppConfig.paymentsInApp || demo) ...[
+              if (demo) ...[
+                const SizedBox(height: AppSpacing.section),
+                const _Notice(
+                  icon: Icons.slideshow_rounded,
+                  text: 'Version de démonstration : les paiements sont simulés, aucun argent n\'est débité.',
+                ),
+              ] else if (products is AsyncLoading) ...[
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ] else if (preview) ...[
+                const SizedBox(height: AppSpacing.section),
+                const _Notice(
+                  icon: Icons.schedule_rounded,
+                  text: 'Les paiements en ligne ouvrent bientôt. Voici les offres prévues.',
+                ),
+              ] else if (backend.isAnonymous) ...[
                 const SizedBox(height: AppSpacing.section),
                 AppCard(
                   color: AppColors.purple100,
@@ -112,37 +136,26 @@ class ShopScreen extends ConsumerWidget {
                   ),
                 ),
               ],
-              ...switch (products) {
-                AsyncData(value: final list?) when list.isNotEmpty => [
-                  const SizedBox(height: AppSpacing.section),
-                  Text('KoumanPlay+', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  for (final p in list.where((p) => p.isPremium)) _ProductCard(product: p, highlight: true),
-                  const SizedBox(height: AppSpacing.section),
-                  Text('Packs de cauris', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  for (final p in list.where((p) => !p.isPremium)) ...[
-                    _ProductCard(product: p),
-                    const SizedBox(height: 10),
-                  ],
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Paiement sécurisé par GeniusPay : Wave, Orange Money, MTN MoMo ou carte bancaire.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.gray500, fontSize: 12),
-                  ),
+              if (demo || products is! AsyncLoading) ...[
+                const SizedBox(height: AppSpacing.section),
+                Text('KoumanPlay+', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                for (final p in list.where((p) => p.isPremium))
+                  _ProductCard(product: p, highlight: true, enabled: !preview),
+                const SizedBox(height: AppSpacing.section),
+                Text('Packs de cauris', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                for (final p in list.where((p) => !p.isPremium)) ...[
+                  _ProductCard(product: p, enabled: !preview),
+                  const SizedBox(height: 10),
                 ],
-                AsyncLoading() => [
-                  const Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ],
-                _ => [
-                  const SizedBox(height: AppSpacing.section),
-                  const AppCard(child: Text('La boutique n\'est pas disponible pour le moment. Vérifie ta connexion.')),
-                ],
-              },
+                const SizedBox(height: 8),
+                const Text(
+                  'Paiement sécurisé par GeniusPay : Wave, Orange Money, MTN MoMo ou carte bancaire.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.gray500, fontSize: 12),
+                ),
+              ],
             ],
           ],
         ),
@@ -152,10 +165,11 @@ class ShopScreen extends ConsumerWidget {
 }
 
 class _ProductCard extends ConsumerWidget {
-  const _ProductCard({required this.product, this.highlight = false});
+  const _ProductCard({required this.product, this.highlight = false, this.enabled = true});
 
   final ShopProduct product;
   final bool highlight;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -206,8 +220,8 @@ class _ProductCard extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => _buy(context, ref, product),
-              child: Text('Acheter · ${_price(product.priceXof)}'),
+              onPressed: enabled ? () => _buy(context, ref, product) : null,
+              child: Text(enabled ? 'Acheter · ${_price(product.priceXof)}' : 'Bientôt · ${_price(product.priceXof)}'),
             ),
           ),
         ],
@@ -223,6 +237,14 @@ Future<void> _buy(BuildContext context, WidgetRef ref, ShopProduct product) asyn
     builder: (_) => _MethodSheet(product: product),
   );
   if (method == null || !context.mounted) return;
+  if (AppConfig.demoShop) {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _DemoCheckout(product: product, method: method),
+    );
+    return;
+  }
   final start = await ref.read(backendProvider).createPayment(product.id, method);
   if (!context.mounted) return;
   if (start.error != null) {
@@ -371,6 +393,100 @@ class _PaymentWaitingState extends ConsumerState<_PaymentWaiting> {
         if (!done && !failed) TextButton(onPressed: _check, child: const Text('J\'ai payé, vérifier')),
         TextButton(onPressed: () => Navigator.pop(context), child: Text(done || failed ? 'Fermer' : 'Plus tard')),
       ],
+    );
+  }
+}
+
+/// Paiement simulé de la version de démonstration : même parcours que le vrai,
+/// livré sur le téléphone, sans serveur ni argent débité.
+class _DemoCheckout extends ConsumerStatefulWidget {
+  const _DemoCheckout({required this.product, required this.method});
+
+  final ShopProduct product;
+  final String method;
+
+  @override
+  ConsumerState<_DemoCheckout> createState() => _DemoCheckoutState();
+}
+
+class _DemoCheckoutState extends ConsumerState<_DemoCheckout> {
+  String _step = 'confirm';
+
+  Future<void> _pay() async {
+    setState(() => _step = 'paying');
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    await ref
+        .read(playerProvider.notifier)
+        .applyDemoPurchase(cauris: widget.product.cauris, premiumDays: widget.product.premiumDays);
+    if (mounted) setState(() => _step = 'done');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (_, label, color) = _MethodSheet.methods.firstWhere((m) => m.$1 == widget.method);
+    final product = widget.product;
+    return switch (_step) {
+      'confirm' => AlertDialog(
+        icon: CircleAvatar(
+          radius: 24,
+          backgroundColor: color,
+          child: Icon(
+            widget.method == 'card' ? Icons.credit_card_rounded : Icons.phone_android_rounded,
+            color: Colors.white,
+          ),
+        ),
+        title: Text('Payer ${_price(product.priceXof)}'),
+        content: Text(
+          '${product.title}\navec $label\n\nDémonstration : aucun argent ne sera débité.',
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          FilledButton(onPressed: _pay, child: const Text('Payer')),
+        ],
+      ),
+      'paying' => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(height: 8),
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Paiement en cours…'),
+          ],
+        ),
+      ),
+      _ => AlertDialog(
+        icon: const Icon(Icons.check_circle_rounded, color: AppColors.green500, size: 44),
+        title: const Text('Paiement reçu !'),
+        content: Text(
+          product.isPremium ? 'KoumanPlay+ est activé. Bon jeu !' : '${product.cauris} cauris ont été ajoutés à ton sac.',
+          textAlign: TextAlign.center,
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fermer'))],
+      ),
+    };
+  }
+}
+
+class _Notice extends StatelessWidget {
+  const _Notice({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      color: AppColors.purple100,
+      border: false,
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.purple500),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text)),
+        ],
+      ),
     );
   }
 }

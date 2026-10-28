@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:koumanplay/core/game_rules.dart';
 import 'package:koumanplay/models/avatar.dart';
 import 'package:koumanplay/models/player.dart';
+import 'package:koumanplay/services/backend.dart';
 
 void main() {
   final now = DateTime(2026, 10, 27, 12);
@@ -56,5 +59,21 @@ void main() {
     expect(again.premiumUntil, until);
     // Rien de neuf : le joueur ne change pas.
     expect(GameRules.applyPurchases(paid, cauris: 0, premiumUntil: until, now: now), same(paid));
+  });
+
+  test('achat de démonstration : cauris ajoutés, KoumanPlay+ prolongé depuis la fin en cours', () {
+    final p = fresh();
+    expect(GameRules.applyDemoPurchase(p, cauris: 100, premiumDays: 0, now: now).cauris, p.cauris + 100);
+    final plus = GameRules.applyDemoPurchase(p, cauris: 0, premiumDays: 30, now: now);
+    expect(plus.premiumUntil, now.add(const Duration(days: 30)));
+    final again = GameRules.applyDemoPurchase(plus, cauris: 0, premiumDays: 30, now: now);
+    expect(again.premiumUntil, now.add(const Duration(days: 60)));
+  });
+
+  test('les offres de secours reprennent celles de la migration 0006', () {
+    final sql = File('supabase/migrations/0006_boutique_paiements.sql').readAsStringSync();
+    for (final p in ShopProduct.catalog) {
+      expect(sql, contains("('${p.id}', '${p.kind}', '${p.title}', '${p.description}', ${p.priceXof}, ${p.cauris}, ${p.premiumDays},"));
+    }
   });
 }

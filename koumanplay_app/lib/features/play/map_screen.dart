@@ -14,6 +14,7 @@ import '../../widgets/avatar_view.dart';
 import '../../widgets/common.dart';
 import '../../widgets/cauris.dart';
 import '../../widgets/energy.dart';
+import '../../widgets/flame.dart';
 import '../../widgets/language_option.dart';
 
 // Géométrie de la carte : chaque langue est une « zone » ; ses niveaux
@@ -229,11 +230,16 @@ class _MapHeader extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
+                const FlameChip(),
+                const SizedBox(width: 6),
                 // Le nom de la langue passe avant le temps d'attente sur les petits écrans.
-                EnergyPill(showWait: constraints.maxWidth >= 340),
+                EnergyPill(showWait: constraints.maxWidth >= 380),
                 const SizedBox(width: 8),
-                GestureDetector(onTap: () => context.push('/boutique'), child: CauriPill(cauris: cauris)),
+                GestureDetector(
+                  onTap: () => context.push('/boutique'),
+                  child: CauriPill(cauris: cauris),
+                ),
               ],
             ),
           ),
@@ -263,19 +269,29 @@ class _LanguageZone extends StatelessWidget {
   Widget build(BuildContext context) {
     final levels = content.levelsOf(language.id);
     final color = Color(language.color);
-    final nodesHeight = levels.length * _nodeSpacing + _zoneTopPadding;
+    // Le Boss ferme le chemin d'une langue qui a du contenu.
+    final hasBoss = content.playableLevelsOf(language.id).isNotEmpty;
+    final bossState = !hasBoss
+        ? null
+        : player.bossesBeaten.contains(language.id)
+        ? NodeState.done
+        : GameRules.isBossUnlocked(content, player, language)
+        ? NodeState.current
+        : NodeState.locked;
+    final nodeCount = levels.length + (hasBoss ? 1 : 0);
+    final nodesHeight = nodeCount * _nodeSpacing + _zoneTopPadding;
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        // Centre de chaque niveau, i = 0 en bas.
+        // Centre de chaque niveau, i = 0 en bas ; le Boss au sommet, au centre.
         final centers = [
-          for (var i = 0; i < levels.length; i++)
+          for (var i = 0; i < nodeCount; i++)
             Offset(
-              width / 2 + sin(i * 1.15 + stepNumber) * width * 0.27,
+              i == levels.length ? width / 2 : width / 2 + sin(i * 1.15 + stepNumber) * width * 0.27,
               nodesHeight - (_firstNodeFromBottom - _bannerHeight) - i * _nodeSpacing,
             ),
         ];
-        final states = [for (final l in levels) nodeStateOf(content, player, l, current)];
+        final states = [for (final l in levels) nodeStateOf(content, player, l, current), ?bossState];
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -304,6 +320,13 @@ class _LanguageZone extends StatelessWidget {
                         itemCount: content.itemsOf(levels[i].id).length,
                         languageName: language.name,
                       ),
+                    ),
+                  if (bossState != null)
+                    Positioned(
+                      left: centers.last.dx - 80,
+                      top: centers.last.dy - 54,
+                      width: 160,
+                      child: _BossNode(language: language, state: bossState),
                     ),
                 ],
               ),
@@ -641,6 +664,157 @@ class _LevelNodeState extends State<_LevelNode> with SingleTickerProviderStateMi
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Boss d'une langue : un grand bouton doré, ouvert quand tous les niveaux
+/// sont validés.
+class _BossNode extends StatelessWidget {
+  const _BossNode({required this.language, required this.state});
+
+  final Language language;
+
+  /// done : battu ; current : ouvert ; locked : niveaux à valider.
+  final NodeState state;
+
+  static const _size = 88.0;
+  static const _depth = 8.0;
+
+  void _onTap(BuildContext context) {
+    if (state == NodeState.locked) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Valide tous les niveaux de ${language.name} pour affronter le Boss.')));
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BossSheet(language: language, beaten: state == NodeState.done),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locked = state == NodeState.locked;
+    final face = locked ? AppColors.gray400 : AppColors.gold;
+    // Tout le bloc (bouton et étiquette) ouvre le Boss.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _onTap(context),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: _size + 24,
+            height: _size + _depth + 10,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.topCenter,
+              children: [
+                if (state == NodeState.current) _PulseRing(color: AppColors.gold, size: _size),
+                Positioned(
+                  top: _depth,
+                  child: _Disc(size: _size, color: Color.lerp(face, Colors.black, 0.3)!),
+                ),
+                _Disc(
+                  size: _size,
+                  color: face,
+                  highlight: true,
+                  child: Icon(
+                    locked ? Icons.lock_rounded : Icons.emoji_events_rounded,
+                    size: 40,
+                    color: AppColors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: locked ? AppColors.gray500.withValues(alpha: 0.75) : const Color(0xFF8A6A0B),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              state == NodeState.done ? 'Boss vaincu' : 'Boss · ${language.name}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BossSheet extends StatelessWidget {
+  const _BossSheet({required this.language, required this.beaten});
+
+  final Language language;
+  final bool beaten;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    Widget rule(IconData icon, String text) => Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: const Color(0xFF8A6A0B)),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text)),
+        ],
+      ),
+    );
+    return Container(
+      margin: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.screen),
+      decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(AppRadius.largeCard)),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Eyebrow('${language.name} · Défi final', color: const Color(0xFF8A6A0B)),
+            const SizedBox(height: 4),
+            Text(beaten ? 'Boss vaincu' : 'Le Boss de la langue', style: theme.textTheme.headlineSmall),
+            const SizedBox(height: 12),
+            rule(Icons.quiz_rounded, '${GameRules.bossQuestions} questions de tous tes niveaux, mélangées.'),
+            rule(Icons.timer_rounded, '${GameRules.bossSeconds} secondes par question.'),
+            rule(Icons.flag_rounded, '${(GameRules.bossPassRatio * 100).round()} % de bonnes réponses pour gagner.'),
+            rule(
+              Icons.redeem_rounded,
+              beaten
+                  ? 'Déjà battu : ${GameRules.bossReplayCauris} cauris par nouvelle victoire.'
+                  : 'Victoire : ${GameRules.bossFirstCauris} cauris, ${GameRules.bossXp} XP et le badge Vainqueur du Boss.',
+            ),
+            const SizedBox(height: AppSpacing.section - 8),
+            EnergyBuilder(
+              builder: (context, energy, nextIn) => FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF8A6A0B)),
+                onPressed: energy == 0
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        context.push('/boss/${language.id}');
+                      },
+                child: Text(
+                  energy == 0
+                      ? 'Plus d\'énergie · ${formatWait(nextIn ?? GameRules.energyRefill)}'
+                      : beaten
+                      ? 'Rejouer le Boss'
+                      : 'Affronter le Boss',
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

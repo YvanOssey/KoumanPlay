@@ -9,6 +9,8 @@ import '../../widgets/avatar_view.dart';
 import '../../widgets/common.dart';
 import '../../widgets/cauris.dart';
 import '../play/map_screen.dart';
+import '../../services/reminders.dart';
+import '../../widgets/fx.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -61,10 +63,7 @@ class ProfileScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(player.firstName, style: theme.textTheme.titleLarge),
-                    Text(
-                      player.isSenior ? 'Aîné' : 'Jeune',
-                      style: const TextStyle(color: AppColors.gray500),
-                    ),
+                    Text(player.isSenior ? 'Aîné' : 'Jeune', style: const TextStyle(color: AppColors.gray500)),
                     const SizedBox(height: 4),
                     GestureDetector(
                       onTap: () => context.push('/avatar'),
@@ -81,13 +80,21 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.section),
           Row(
             children: [
-              Expanded(child: _Metric(value: '$level', label: 'Niveau')),
+              Expanded(
+                child: _Metric(value: '$level', label: 'Niveau'),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _Metric(value: '${player.xp}', label: 'XP', color: AppColors.green500)),
+              Expanded(
+                child: _Metric(value: '${player.xp}', label: 'XP', color: AppColors.green500),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _Metric(value: '${player.cauris}', label: 'Cauris', color: caurisColor)),
+              Expanded(
+                child: _Metric(value: '${player.cauris}', label: 'Cauris', color: caurisColor),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _Metric(value: '${player.streak}', label: 'Série', color: AppColors.warning)),
+              Expanded(
+                child: _Metric(value: '${player.streak}', label: 'Série', color: AppColors.warning),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -122,7 +129,10 @@ class ProfileScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const Text('Changer', style: TextStyle(color: AppColors.purple500, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Changer',
+                    style: TextStyle(color: AppColors.purple500, fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
             ),
@@ -214,6 +224,8 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 12),
+          const _Settings(),
+          const SizedBox(height: 12),
           Center(
             child: TextButton(
               onPressed: () async {
@@ -255,7 +267,10 @@ class _Metric extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color)),
+          Text(
+            value,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color),
+          ),
           Text(label, style: const TextStyle(color: AppColors.gray500, fontSize: 12)),
         ],
       ),
@@ -277,13 +292,58 @@ class _DomainProgress extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.w500))),
+            Expanded(
+              child: Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
+            ),
             Text('${(value * 100).round()} %', style: const TextStyle(color: AppColors.gray500)),
           ],
         ),
         const SizedBox(height: 6),
         KpProgressBar(value: value, color: color),
       ],
+    );
+  }
+}
+
+/// Réglages : sons du jeu et notifications de relance.
+class _Settings extends ConsumerStatefulWidget {
+  const _Settings();
+
+  @override
+  ConsumerState<_Settings> createState() => _SettingsState();
+}
+
+class _SettingsState extends ConsumerState<_Settings> {
+  @override
+  Widget build(BuildContext context) {
+    final sound = ref.watch(soundProvider);
+    final reminders = ref.watch(remindersProvider);
+    return AppCard(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        children: [
+          SwitchListTile(
+            secondary: const Icon(Icons.volume_up_rounded, color: AppColors.purple500),
+            title: const Text('Sons du jeu'),
+            value: sound.enabled,
+            onChanged: (on) async {
+              await sound.setEnabled(on);
+              setState(() {});
+            },
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.notifications_active_rounded, color: AppColors.purple500),
+            title: const Text('Rappels de jeu'),
+            subtitle: const Text('Énergie pleine, Flamme du savoir : une fois par jour au plus.'),
+            value: reminders.enabled,
+            onChanged: (on) async {
+              await reminders.setEnabled(on);
+              if (on) await reminders.reschedule(ref.read(playerProvider));
+              setState(() {});
+            },
+          ),
+        ],
+      ),
     );
   }
 }

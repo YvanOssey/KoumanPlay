@@ -119,6 +119,13 @@ class PlayerState {
     this.toReview = const {},
     this.ownedItems = const {},
     this.premiumUntil,
+    this.weekKey,
+    this.weekXp = 0,
+    this.bossesBeaten = const {},
+    this.leagueRewardWeek,
+    this.duelsRewarded = const {},
+    this.flameShields = 0,
+    this.flameClaimed = const {},
   });
 
   /// Énergie maximale ; une mauvaise réponse en coûte une.
@@ -199,6 +206,25 @@ class PlayerState {
   /// Fin de l'abonnement KoumanPlay+ (payé en ligne, donné par le serveur).
   final DateTime? premiumUntil;
 
+  /// Semaine ISO (« 2026-W44 ») de [weekXp] : l'XP gagné cette semaine fait
+  /// le classement de la ligue.
+  final String? weekKey;
+  final int weekXp;
+
+  /// Langues dont le Boss a été battu.
+  final Set<String> bossesBeaten;
+
+  /// Dernière semaine de ligue dont la récompense a été reçue.
+  final String? leagueRewardWeek;
+
+  /// Duels terminés dont la récompense a été reçue.
+  final Set<String> duelsRewarded;
+
+  /// Flamme du savoir : protège-flammes en réserve (sauvent la série après
+  /// un jour manqué) et paliers déjà récompensés (3, 7, 30, 100 jours).
+  final int flameShields;
+  final Set<int> flameClaimed;
+
   bool ownsItem(String item) => AvatarConfig.priceOf(item) == 0 || ownedItems.contains(item);
 
   AvatarConfig get avatarOrDefault => avatar ?? (isSenior ? AvatarConfig.elderDefault : AvatarConfig.youngDefault);
@@ -239,6 +265,13 @@ class PlayerState {
     Set<String>? toReview,
     Set<String>? ownedItems,
     DateTime? premiumUntil,
+    String? weekKey,
+    int? weekXp,
+    Set<String>? bossesBeaten,
+    String? leagueRewardWeek,
+    Set<String>? duelsRewarded,
+    int? flameShields,
+    Set<int>? flameClaimed,
   }) =>
       PlayerState(
         firstName: firstName ?? this.firstName,
@@ -267,6 +300,13 @@ class PlayerState {
         toReview: toReview ?? this.toReview,
         ownedItems: ownedItems ?? this.ownedItems,
         premiumUntil: premiumUntil ?? this.premiumUntil,
+        weekKey: weekKey ?? this.weekKey,
+        weekXp: weekXp ?? this.weekXp,
+        bossesBeaten: bossesBeaten ?? this.bossesBeaten,
+        leagueRewardWeek: leagueRewardWeek ?? this.leagueRewardWeek,
+        duelsRewarded: duelsRewarded ?? this.duelsRewarded,
+        flameShields: flameShields ?? this.flameShields,
+        flameClaimed: flameClaimed ?? this.flameClaimed,
       );
 
   Map<String, dynamic> toJson() => {
@@ -296,6 +336,13 @@ class PlayerState {
         'toReview': toReview.toList(),
         'ownedItems': ownedItems.toList(),
         'premiumUntil': premiumUntil?.toUtc().toIso8601String(),
+        'weekKey': weekKey,
+        'weekXp': weekXp,
+        'bossesBeaten': bossesBeaten.toList(),
+        'leagueRewardWeek': leagueRewardWeek,
+        'duelsRewarded': duelsRewarded.toList(),
+        'flameShields': flameShields,
+        'flameClaimed': flameClaimed.toList(),
       };
 
   factory PlayerState.fromJson(Map<String, dynamic> json) => PlayerState(
@@ -336,5 +383,12 @@ class PlayerState {
             ? AvatarConfig.fromJson((json['avatar'] as Map).cast<String, dynamic>()).items
             : const {},
         premiumUntil: DateTime.tryParse(json['premiumUntil'] as String? ?? ''),
+        weekKey: json['weekKey'] as String?,
+        weekXp: json['weekXp'] as int? ?? 0,
+        bossesBeaten: ((json['bossesBeaten'] as List?) ?? const []).cast<String>().toSet(),
+        leagueRewardWeek: json['leagueRewardWeek'] as String?,
+        duelsRewarded: ((json['duelsRewarded'] as List?) ?? const []).cast<String>().toSet(),
+        flameShields: json['flameShields'] as int? ?? 0,
+        flameClaimed: ((json['flameClaimed'] as List?) ?? const []).cast<int>().toSet(),
       );
 }

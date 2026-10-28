@@ -12,4 +12,9 @@ class AppConfig {
   /// paiement pour les achats dans l'app. Les achats faits sur la version web
   /// y sont quand même débloqués.
   static const paymentsInApp = bool.fromEnvironment('PAYMENTS_IN_APP', defaultValue: true);
+
+  /// Version de présentation : la boutique simule les paiements et livre les
+  /// achats sur le téléphone, sans serveur et sans débiter d'argent.
+  ///   flutter build apk --dart-define=DEMO_SHOP=true ...
+  static const demoShop = bool.fromEnvironment('DEMO_SHOP');
 }

@@ -7,6 +7,7 @@ import '../core/game_rules.dart';
 import '../models/avatar.dart';
 import '../models/content.dart';
 import '../models/player.dart';
+import '../models/social.dart';
 import 'backend.dart';
 import 'contributions.dart';
 
@@ -116,9 +117,68 @@ class PlayerController extends Notifier<PlayerState> {
   ContentPack get _content => ref.read(contentProvider);
 
   Future<void> _save(PlayerState next, {bool sync = true}) async {
+    final weekXpChanged = next.weekXp != state.weekXp || next.weekKey != state.weekKey;
+    // Flamme du savoir : un palier atteint est récompensé et fêté.
+    if (sync && next.streak > state.streak) {
+      final (claimed, reached) = GameRules.claimFlameMilestones(next);
+      if (reached.isNotEmpty) {
+        next = claimed;
+        ref.read(flameEventProvider.notifier).show(reached.last);
+        _analytics.track('flame_milestone', {'days': reached.last});
+      }
+    }
     state = next;
     await ref.read(prefsProvider).setString(_playerKey, jsonEncode(next.toJson()));
     if (sync) _pushRemote();
+    if (sync && weekXpChanged) syncLeague();
+  }
+
+  /// Envoie l'XP de la semaine à la ligue et renvoie le groupe du joueur.
+  Future<LeagueBoard?> syncLeague() async {
+    final now = DateTime.now();
+    return _backend.syncLeague(
+      week: GameRules.weekKey(now),
+      points: GameRules.weeklyXp(state, now),
+      name: state.firstName.isEmpty ? 'Joueur' : state.firstName,
+      avatar: state.avatarOrDefault.toJson(),
+    );
+  }
+
+  /// Podium de la semaine passée : renvoie les cauris reçus, ou null si la
+  /// récompense avait déjà été donnée.
+  Future<int?> claimLeagueReward(LeagueResult result) async {
+    final next = GameRules.claimLeagueReward(state, week: result.week, rank: result.rank, points: result.points, now: DateTime.now());
+    if (next == null) return null;
+    final cauris = next.cauris - state.cauris;
+    await _save(next);
+    _analytics.track('league_week_ended', {'tier': result.tier, 'rank': result.rank, 'new_tier': result.newTier});
+    return cauris;
+  }
+
+  /// Duel terminé : renvoie les cauris reçus, ou null si déjà donnés.
+  Future<int?> claimDuelReward(String duelId, DuelVerdict verdict) async {
+    final next = GameRules.claimDuelReward(state, duelId, verdict, DateTime.now());
+    if (next == null) return null;
+    await _save(next);
+    _analytics.track('duel_finished', {'verdict': verdict.name});
+    return GameRules.duelReward(verdict);
+  }
+
+  Future<BossOutcome> completeBoss(String languageId, {required int correct, required int total}) async {
+    final outcome = GameRules.completeBoss(
+      content: _content,
+      player: state,
+      languageId: languageId,
+      correct: correct,
+      total: total,
+      now: DateTime.now(),
+    );
+    await _save(outcome.player);
+    _analytics.track('boss_completed', {'language': languageId, 'correct': correct, 'total': total, 'passed': outcome.passed});
+    for (final badge in outcome.newBadges) {
+      _analytics.track('badge_earned', {'badge': badge.id});
+    }
+    return outcome;
   }
 
   Future<void> _pushRemote() async {
@@ -232,6 +292,21 @@ class PlayerController extends Notifier<PlayerState> {
     return purchases.cauris;
   }
 
+  /// Protège-flamme payé en cauris ; false s'il en manque ou si la réserve est pleine.
+  Future<bool> buyFlameShield() async {
+    final next = GameRules.buyFlameShield(state, DateTime.now());
+    if (next == null) return false;
+    await _save(next);
+    _analytics.track('flame_shield_bought');
+    return true;
+  }
+
+  /// Boutique de démonstration : livre l'achat sur le téléphone, sans paiement.
+  Future<void> applyDemoPurchase({required int cauris, required int premiumDays}) async {
+    await _save(GameRules.applyDemoPurchase(state, cauris: cauris, premiumDays: premiumDays, now: DateTime.now()));
+    _analytics.track('demo_purchase', {'cauris': cauris, 'premium_days': premiumDays});
+  }
+
   Future<void> setAvatar(AvatarConfig avatar) async {
     await _save(state.copyWith(avatar: avatar, updatedAt: DateTime.now()));
     _analytics.track('avatar_updated', {'hair': avatar.hair, 'outfit': avatar.outfit});
@@ -268,6 +343,7 @@ class PlayerController extends Notifier<PlayerState> {
     bool outOfEnergy = false,
     int correctAnswers = 0,
     int recallsWithoutHint = 0,
+    int quickAnswers = 0,
   }) async {
     final outcome = GameRules.completeLevel(
       content: _content,
@@ -279,6 +355,7 @@ class PlayerController extends Notifier<PlayerState> {
       outOfEnergy: outOfEnergy,
       correctAnswers: correctAnswers,
       recallsWithoutHint: recallsWithoutHint,
+      quickAnswers: quickAnswers,
     );
     await _save(outcome.player);
     _analytics.track('level_completed', {
@@ -345,3 +422,15 @@ class PlayerController extends Notifier<PlayerState> {
 }
 
 final playerProvider = NotifierProvider<PlayerController, PlayerState>(PlayerController.new);
+
+/// Palier de la Flamme du savoir à fêter (3, 7, 30 ou 100 jours), ou null.
+class FlameEvent extends Notifier<int?> {
+  @override
+  int? build() => null;
+
+  void show(int days) => state = days;
+
+  void clear() => state = null;
+}
+
+final flameEventProvider = NotifierProvider<FlameEvent, int?>(FlameEvent.new);
